@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>Vaja 3 - demo</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="js/libs/gl-matrix/gl-matrix.js"></script>
+        <script src="js/gldemo.js"></script>
+        <script id="simple-vs" type="x-shader/x-vertex">#version 300 es
+            
+            precision mediump float;
+
+            uniform mat4 PVM;
+
+            layout(location = 0) in vec3 VertexPosition;
+            //layout(location = 1) in vec3 VertexColor;
+
+            out vec3 Color;
+            void main(){
+                gl_Position=PVM * vec4(VertexPosition,1);
+                Color=vec3(-1,0,0.5);
+            }
+
+        </script>
+        <script id="simple-fs" type="x-shader/x-fragment">#version 300 es
+
+            precision mediump float;
+            in vec3 Color;
+
+            out vec4 color;
+            void main(){
+                color=vec4(Color + vec3(1,1,0), 1);
+            }
+        </script>
+    </head>
+    <body>
+        <div id="containerDiv">
+            <canvas id="myCanvas" width="400" height="400">Ni podpore za canvas?.</canvas>
+        </div>        
+    </body>
+</html>

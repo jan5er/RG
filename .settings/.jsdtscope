@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry excluding="libs/gl-matrix/|**/bower_components/*|**/node_modules/*|libs/jquery/|**/*.min.js" kind="src" path="js"/>
+	<classpathentry excluding="**/bower_components/*|**/node_modules/*|**/*.min.js" kind="src" path="js/libs/gl-matrix"/>
+	<classpathentry excluding="**/bower_components/*|**/node_modules/*|**/*.min.js" kind="src" path="js/libs/jquery"/>
+	<classpathentry kind="con" path="org.eclipse.wst.jsdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="con" path="org.eclipse.wst.jsdt.USER_LIBRARY/debug"/>
+	<classpathentry kind="con" path="org.eclipse.wst.jsdt.launching.FireFoxBrowserLibrary"/>
+	<classpathentry kind="output" path=""/>
+</classpath>
