@@ -230,16 +230,17 @@ window.addEventListener('load', function() {
 		*/
 		const vertsPerRectangle = 3 * 2; // 3 točke na trikotnik, 2 trikotnika na kvadrat
 		let colorLoc = gl.getUniformLocation(program, "SquareColor");
+		let squareOffsetLoc = gl.getUniformLocation(program, "SquareOffset");
 
 		gl.bindVertexArray(vaoFloor);
-		gl.uniform3f(colorLoc, 0, 0, 0);	// črna barva za tla
+		gl.uniform4f(colorLoc, 0, 0, 0, 1);	// črna barva za tla
 		gl.drawArrays(gl.TRIANGLES, 0, vertsPerRectangle);
 
 		gl.bindVertexArray(vaoPyramid);
 		// gl.drawArrays(gl.TRIANGLES, 0, vertsPerRectangle * offsets.length);
 
 		for (let i = 0; i < offsets.length; i++) {
-			gl.uniform3f(colorLoc, colors[i][0], colors[i][1], colors[i][2]);
+			gl.uniform4f(colorLoc, colors[i][0], colors[i][1], colors[i][2], 1.0);
 			gl.drawArrays(gl.TRIANGLES, i * vertsPerRectangle, vertsPerRectangle);
 		}
 
