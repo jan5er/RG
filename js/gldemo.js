@@ -18,6 +18,7 @@ const colors = [
     [0.3, 0.3, 1.0]
 ];
 
+let t = 0;
 
 window.addEventListener('load', function() {
 
@@ -227,12 +228,29 @@ window.addEventListener('load', function() {
 		gl.bindVertexArray(vaoTrikotniki);
 		gl.drawArrays(gl.TRIANGLES, 0, 3);
 		*/
+		const vertsPerRectangle = 3 * 2; // 3 točke na trikotnik, 2 trikotnika na kvadrat
+		let colorLoc = gl.getUniformLocation(program, "SquareColor");
 
 		gl.bindVertexArray(vaoFloor);
-		gl.drawArrays(gl.TRIANGLES, 0, 3*2);
+		gl.uniform3f(colorLoc, 0, 0, 0);	// črna barva za tla
+		gl.drawArrays(gl.TRIANGLES, 0, vertsPerRectangle);
 
 		gl.bindVertexArray(vaoPyramid);
-		gl.drawArrays(gl.TRIANGLES, 0, 3*2*offsets.length);
+		// gl.drawArrays(gl.TRIANGLES, 0, vertsPerRectangle * offsets.length);
+
+		for (let i = 0; i < offsets.length; i++) {
+			gl.uniform3f(colorLoc, colors[i][0], colors[i][1], colors[i][2]);
+			gl.drawArrays(gl.TRIANGLES, i * vertsPerRectangle, vertsPerRectangle);
+		}
+
+		t += 0.1;
+
+		for (let i = 0; i < colors.length; i++) {
+			colors[i][0] = 0.5 + 0.5 * Math.sin(t * 1 + i * 3);
+			colors[i][1] = 0.5 + 0.5 * Math.sin(t * 0.5 + i * 5);
+			colors[i][2] = 0.5 + 0.5 * Math.sin(t * 1.5 + i * 7);
+			colors[i][3] = 1.0;
+		}
 
 		/* 1 kvadrat na sredini (baseSquare)
 		gl.bindVertexArray(vaoBaseSquare);

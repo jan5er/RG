@@ -17,9 +17,11 @@
             //layout(location = 1) in vec3 VertexColor;
 
             out vec3 Color;
+            uniform vec3 SquareColor;
+
             void main(){
                 gl_Position=PVM * vec4(VertexPosition,1);
-                Color=vec3(-1,0,0.5);
+                Color=SquareColor;
             }
 
         </script>
@@ -30,7 +32,7 @@
 
             out vec4 color;
             void main(){
-                color=vec4(Color + vec3(1,1,0), 1);
+                color=vec4(Color, 1);
             }
         </script>
     </head>
