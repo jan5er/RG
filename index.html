@@ -18,9 +18,10 @@
 
             out vec4 Color;
             uniform vec4 SquareColor;
+            uniform vec3 SquareOffset;
 
             void main(){
-                gl_Position=PVM * vec4(VertexPosition, 1);
+                gl_Position=PVM * vec4(VertexPosition + SquareOffset, 1);
                 Color=SquareColor;
             }
 

@@ -115,17 +115,13 @@ window.addEventListener('load', function() {
 
 		let pyramid = [];
 		for (let current = 0; current < offsets.length; current++) {
-			let xOffset = offsets[current][0];
-			let yOffset = offsets[current][1];
-
 			for (let i = 0; i < baseSquare.length / 3; i++) {
-				pyramid.push(baseSquare[i * 3] * scale + xOffset);
-				pyramid.push(baseSquare[i * 3 + 1] * scale + yOffset);
+				pyramid.push(baseSquare[i * 3] * scale);
+				pyramid.push(baseSquare[i * 3 + 1] * scale);
 				pyramid.push(baseSquare[i * 3 + 2] * scale);
 			}
 		}
 
-	
 		bufferFloor = gl.createBuffer();
 			vaoFloor = gl.createVertexArray();
 			gl.bindVertexArray(vaoFloor);
@@ -230,10 +226,13 @@ window.addEventListener('load', function() {
 		*/
 		const vertsPerRectangle = 3 * 2; // 3 točke na trikotnik, 2 trikotnika na kvadrat
 		let colorLoc = gl.getUniformLocation(program, "SquareColor");
+
+		let xMove = Math.sin(t) * 0.3;
 		let squareOffsetLoc = gl.getUniformLocation(program, "SquareOffset");
 
 		gl.bindVertexArray(vaoFloor);
 		gl.uniform4f(colorLoc, 0, 0, 0, 1);	// črna barva za tla
+		gl.uniform3f(squareOffsetLoc, 0.0, 0.0, 0.0);
 		gl.drawArrays(gl.TRIANGLES, 0, vertsPerRectangle);
 
 		gl.bindVertexArray(vaoPyramid);
@@ -241,6 +240,12 @@ window.addEventListener('load', function() {
 
 		for (let i = 0; i < offsets.length; i++) {
 			gl.uniform4f(colorLoc, colors[i][0], colors[i][1], colors[i][2], 1.0);
+			gl.uniform3f(
+				squareOffsetLoc,
+				offsets[i][0] + xMove,  // apply both static layout + movement
+				offsets[i][1],
+				0.0
+			);
 			gl.drawArrays(gl.TRIANGLES, i * vertsPerRectangle, vertsPerRectangle);
 		}
 
