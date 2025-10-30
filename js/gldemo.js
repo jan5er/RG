@@ -75,6 +75,8 @@ window.addEventListener('load', function() {
 
 	var bufferTrikotniki;
     var vaoTrikotniki;
+	let bufferFloor;
+	let vaoFloor;
 
 	function constructGeometry() {
 		// ustvari podatke za tla (koordinate oglišč, normale,
@@ -227,7 +229,18 @@ window.addEventListener('load', function() {
 		const vertsPerRectangle = 3 * 2; // 3 točke na trikotnik, 2 trikotnika na kvadrat
 		let colorLoc = gl.getUniformLocation(program, "SquareColor");
 
-		let xMove = Math.sin(t) * 0.3;
+		// ZAGOVOR
+		let button = document.querySelector("#animationButton");
+		button.onclick = function() {
+			button.clicked = !button.clicked;
+		};
+
+		let yMove = 0;
+		if (button.clicked) {
+			yMove = 0.2 * Math.sin(t);
+		} else {
+			yMove = 0;
+		}
 		let squareOffsetLoc = gl.getUniformLocation(program, "SquareOffset");
 
 		gl.bindVertexArray(vaoFloor);
@@ -240,12 +253,7 @@ window.addEventListener('load', function() {
 
 		for (let i = 0; i < offsets.length; i++) {
 			gl.uniform4f(colorLoc, colors[i][0], colors[i][1], colors[i][2], 1.0);
-			gl.uniform3f(
-				squareOffsetLoc,
-				offsets[i][0] + xMove,  // apply both static layout + movement
-				offsets[i][1],
-				0.0
-			);
+			gl.uniform3f(squareOffsetLoc, offsets[i][0], offsets[i][1] + yMove, 0.0);
 			gl.drawArrays(gl.TRIANGLES, i * vertsPerRectangle, vertsPerRectangle);
 		}
 
@@ -253,7 +261,7 @@ window.addEventListener('load', function() {
 
 		for (let i = 0; i < colors.length; i++) {
 			colors[i][0] = 0.5 + 0.5 * Math.sin(t * 1 + i * 3);
-			colors[i][1] = 0.5 + 0.5 * Math.sin(t * 0.5 + i * 5);
+			colors[i][1] = 0.5 + 0.5 * Math.cos(t * 0.5 + i * 5);
 			colors[i][2] = 0.5 + 0.5 * Math.sin(t * 1.5 + i * 7);
 			colors[i][3] = 1.0;
 		}
