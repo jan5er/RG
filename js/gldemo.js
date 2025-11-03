@@ -1,4 +1,3 @@
-
 window.addEventListener('load', function() {
 
 	/** @type {WebGL2RenderingContext} */
@@ -52,14 +51,17 @@ window.addEventListener('load', function() {
 		}
 	}
 
+	/*
 	var bufferTrikotniki;
     var vaoTrikotniki;
+	*/
 
 	function constructGeometry() {
 		// ustvari podatke za tla (koordinate oglišč, normale,
 		// koordinate teksture)
 		// lahko uporabiš constructSphere za generiranje krogle
 		// ustvari bufferje na GPU in kopiraj podatke
+		/*
 		bufferTrikotniki = gl.createBuffer();
                 vaoTrikotniki = gl.createVertexArray();
                 gl.bindVertexArray(vaoTrikotniki);
@@ -67,6 +69,7 @@ window.addEventListener('load', function() {
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0, 0, 0, 0.5, 0.0, 0.0, 0.5, 0.5, 0.0 ]), gl.STATIC_DRAW);
                 gl.enableVertexAttribArray(0);
                 gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 3 * 4, 0);
+		*/
 	}
 
 	var posY = 0, posX = 0;
