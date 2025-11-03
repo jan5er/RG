@@ -125,8 +125,10 @@ window.addEventListener('load', function() {
 		});
 
 		canvas.addEventListener('wheel', (e) => { 
-			e.preventDefault();
-			cameraDistance += e.deltaY * 0.001; // Zoom "step" ob scrollanju
+			let forward_vector = getCameraDirection();
+			cameraPos[0] += -forward_vector[0] * e.deltaY * 0.001;
+			cameraPos[1] += -forward_vector[1] * e.deltaY * 0.001;
+			cameraPos[2] += -forward_vector[2] * e.deltaY * 0.001;
 			if (cameraDistance < 0.5) cameraDistance = 0.5; 
 		});
 	}
@@ -161,7 +163,6 @@ window.addEventListener('load', function() {
 				for (let i = 0; i < pyramidScale.length; i++)
 					pyramidScale[i] -= 0.1;
 				break;
-			case 'Escape': pyramidScale = [1.0, 1.0, 1.0]; break;
 
             case 'y': pyramidShear[0]-=0.05; break;
             case 'x': pyramidShear[0]+=0.05; break;
@@ -169,6 +170,13 @@ window.addEventListener('load', function() {
 			case 'v': pyramidShear[1]+=0.05; break;
 			case 'b': pyramidShear[2]-=0.05; break;
 			case 'n': pyramidShear[2]+=0.05; break;
+			
+			case 'Escape': 
+				pyramidScale = [1.0, 1.0, 1.0];
+				pyramidShear = [0.0, 0.0, 0.0];
+				pyramidRotation = [0, 0, 0];      
+				pyramidPosition = [0, 0, 0];
+				break;
 
 			case 'p': orthoPerspective = !orthoPerspective; break;
         }
@@ -382,4 +390,16 @@ window.addEventListener('load', function() {
 		let e = gl.getError();
 			if (e) alert("Draw error: " + e);
 	}
+
+	function getCameraDirection() {
+		let pitch = glMatrix.glMatrix.toRadian(cameraRotation[1]);
+		let yaw = glMatrix.glMatrix.toRadian(cameraRotation[0]);
+
+		let x = Math.cos(pitch) * Math.sin(yaw);
+		let y = Math.sin(pitch);
+		let z = Math.cos(pitch) * Math.cos(yaw);
+
+		return [x, y, -z];
+	}
+
 });
