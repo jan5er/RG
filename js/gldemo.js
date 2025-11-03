@@ -176,6 +176,7 @@ window.addEventListener('load', function() {
 				pyramidShear = [0.0, 0.0, 0.0];
 				pyramidRotation = [0, 0, 0];      
 				pyramidPosition = [0, 0, 0];
+				resetSliders();
 				break;
 
 			case 'p': orthoPerspective = !orthoPerspective; break;
@@ -304,7 +305,7 @@ window.addEventListener('load', function() {
 	constructGeometry();
 	setupInteraction(myCanvas);
 	setupMouseControls(myCanvas);
-
+	setupSliders();
 
 	gl.clearColor(0.0, 0.2, 0.7, 1);
 
@@ -400,6 +401,45 @@ window.addEventListener('load', function() {
 		let z = Math.cos(pitch) * Math.cos(yaw);
 
 		return [x, y, -z];
+	}
+
+	function setupSliders() {
+		const sliderData = [
+			["scaleX", pyramidScale, 0], ["scaleY", pyramidScale, 1], ["scaleZ", pyramidScale, 2],
+			["shearXY", pyramidShear, 0], ["shearXZ", pyramidShear, 1], ["shearYZ", pyramidShear, 2],
+			["rotX", pyramidRotation, 0], ["rotY", pyramidRotation, 1], ["rotZ", pyramidRotation, 2],
+			["posX", pyramidPosition, 0], ["posY", pyramidPosition, 1], ["posZ", pyramidPosition, 2]
+		];
+		const button = document.getElementById("toggleProjection");
+		button.addEventListener('click', () => {
+			orthoPerspective = !orthoPerspective;
+			button.textContent = orthoPerspective ? "Orthographic" : "Perspective";
+			console.log("Projection mode toggled:", orthoPerspective ? "Orthographic" : "Perspective");
+		});
+
+		sliderData.forEach(([id, arr, index]) => {
+			const slider = document.getElementById(id);
+			const display = document.getElementById(id + "Val");
+			slider.addEventListener('input', () => {
+				arr[index] = parseFloat(slider.value);
+				display.textContent = slider.value;
+			});
+		});
+	}
+
+	function resetSliders() {
+		const defaultValues = {
+			"scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0,
+			"shearXY": 0.0, "shearXZ": 0.0, "shearYZ": 0.0,
+			"rotX": 0, "rotY": 0, "rotZ": 0,
+			"posX": 0, "posY": 0, "posZ": 0
+		};
+		Object.keys(defaultValues).forEach(key => {
+			const slider = document.getElementById(key);
+			const display = document.getElementById(key + "Val");
+			slider.value = defaultValues[key];
+			display.textContent = defaultValues[key];
+		});
 	}
 
 });
