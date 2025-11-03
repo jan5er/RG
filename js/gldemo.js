@@ -1,3 +1,41 @@
+let cubePositions = [
+    [-0.4, -0.4, 0], [0, -0.4, 0], [0.4, -0.4, 0],
+    [-0.2, 0, 0], [0.2, 0, 0], 
+    [0, 0.4, 0]  
+];
+
+let cubeColors = [
+    [1, 0, 0],  
+    [0, 1, 0],   
+    [0, 0, 1],   
+    [1, 1, 0],  
+    [1, 0, 1],  
+    [0, 1, 1]
+];
+
+let t = 0;
+
+let cameraDistance = 3;
+let isLeftMB = false;
+let isRightMB = false;	
+let lastMouseX = 0;
+let lastMouseY = 0;
+let cameraPos = [0, 0, 0]; // začetna pozicija kamere
+let cameraRotation = [0, 0, 0]; 
+let pyramidScale = [1.0, 1.0, 1.0];   // skaliranje
+let pyramidShear = [0.0, 0.0, 0.0];   // shear XY, XZ, YZ
+let pyramidRotation = [0, 0, 0];      
+let pyramidPosition = [0, 0, 0];
+let orthoPerspective = false;
+
+function shearMatrix(shearXY, shearXZ, shearYZ) {
+	let shearMat = glMatrix.mat4.create();
+	shearMat[4] = shearXY;
+	shearMat[8] = shearXZ;
+	shearMat[9] = shearYZ;
+	return shearMat;
+}
+
 window.addEventListener('load', function() {
 
 	/** @type {WebGL2RenderingContext} */
@@ -51,10 +89,97 @@ window.addEventListener('load', function() {
 		}
 	}
 
+	function setupMouseControls(canvas) {
+		canvas.addEventListener('mousedown', (e) => {
+			if (e.button === 0) isLeftMB = true;  // 0 = left button, 1 = middle button, 2 = right button
+			if (e.button === 2) isRightMB = true;
+			lastMouseX = e.clientX;
+			lastMouseY = e.clientY;
+		});
+
+		canvas.addEventListener('contextmenu', e => e.preventDefault()); // Disablamo desni klik meni
+
+		canvas.addEventListener('mouseup', (e) => {
+			if (e.button === 0) isLeftMB = false;
+			if (e.button === 2) isRightMB = false;
+		});
+
+		canvas.addEventListener('mousemove', (e) => {
+			let dx = e.clientX - lastMouseX;
+			let dy = e.clientY - lastMouseY;
+
+			if (isLeftMB) {
+				cameraPos[0] -= dx * 0.01;  // levo-desno
+				cameraPos[1] += dy * 0.01;  // gor-dol
+			}
+			
+			if (isRightMB) {
+				cameraRotation[0] += dx * 0.5;
+				cameraRotation[1] += dy * 0.5;
+				if (cameraRotation[1] > 89.0) cameraRotation[1] = 89.0;
+				if (cameraRotation[1] < -89.0) cameraRotation[1] = -89.0;
+			}
+
+			lastMouseX = e.clientX;
+			lastMouseY = e.clientY;
+		});
+
+		canvas.addEventListener('wheel', (e) => { 
+			e.preventDefault();
+			cameraDistance += e.deltaY * 0.001; // Zoom "step" ob scrollanju
+			if (cameraDistance < 0.5) cameraDistance = 0.5; 
+		});
+	}
+
+	window.addEventListener('keydown', (e)=>{
+        switch(e.key){
+            case 'ArrowUp': pyramidPosition[1]+=0.1; break;
+            case 'ArrowDown': pyramidPosition[1]-=0.1; break;
+            case 'ArrowLeft': pyramidPosition[0]-=0.1; break;
+            case 'ArrowRight': pyramidPosition[0]+=0.1; break;
+			case '-': pyramidPosition[2]+=0.1; break;
+			case '.': pyramidPosition[2]-=0.1; break;
+			
+            case 'q': pyramidRotation[1]-=5; break;
+            case 'e': pyramidRotation[1]+=5; break;
+			case 'r': pyramidRotation[0]-=5; break;
+			case 't': pyramidRotation[0]+=5; break;
+			case 'z': pyramidRotation[2]-=5; break;
+			case 'u': pyramidRotation[2]+=5; break;
+
+            case 'w': pyramidScale[1]+=0.1; break;
+            case 's': pyramidScale[1]-=0.1; break;
+			case 'd': pyramidScale[0]+=0.1; break;
+			case 'a': pyramidScale[0]-=0.1; break;
+			case 'f': pyramidScale[2]+=0.1; break;
+			case 'g': pyramidScale[2]-=0.1; break;
+			case 'h': 
+				for (let i = 0; i < pyramidScale.length; i++)
+					pyramidScale[i] += 0.1;
+				break;
+			case 'j': 
+				for (let i = 0; i < pyramidScale.length; i++)
+					pyramidScale[i] -= 0.1;
+				break;
+			case 'Escape': pyramidScale = [1.0, 1.0, 1.0]; break;
+
+            case 'y': pyramidShear[0]-=0.05; break;
+            case 'x': pyramidShear[0]+=0.05; break;
+			case 'c': pyramidShear[1]-=0.05; break;
+			case 'v': pyramidShear[1]+=0.05; break;
+			case 'b': pyramidShear[2]-=0.05; break;
+			case 'n': pyramidShear[2]+=0.05; break;
+
+			case 'p': orthoPerspective = !orthoPerspective; break;
+        }
+    });
+
 	/*
 	var bufferTrikotniki;
     var vaoTrikotniki;
 	*/
+	let bufferCube;
+	let vaoCube;
 
 	function constructGeometry() {
 		// ustvari podatke za tla (koordinate oglišč, normale,
@@ -70,6 +195,71 @@ window.addEventListener('load', function() {
                 gl.enableVertexAttribArray(0);
                 gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 3 * 4, 0);
 		*/
+
+		let cubeVertices = [
+			// spredaj (2 trikotnika na lice kocke)
+			-0.5, -0.5, 0.5,	
+			0.5, -0.5, 0.5,
+			0.5, 0.5, 0.5,
+			-0.5, -0.5, 0.5,
+			0.5, 0.5, 0.5,
+			-0.5, 0.5, 0.5,
+
+			// zadaj
+			-0.5, -0.5, -0.5,
+			-0.5, 0.5, -0.5,
+			0.5, 0.5, -0.5,
+			-0.5, -0.5, -0.5,
+			0.5, 0.5, -0.5,
+			0.5, -0.5, -0.5,
+
+			// levo
+			-0.5, -0.5, -0.5,
+			-0.5, -0.5, 0.5,
+			-0.5, 0.5, 0.5,
+			-0.5, -0.5, -0.5,
+			-0.5, 0.5, 0.5,
+			-0.5, 0.5, -0.5,
+
+			// desno
+			0.5, -0.5, -0.5,
+			0.5, 0.5, -0.5,
+			0.5, 0.5, 0.5,
+			0.5, -0.5, -0.5,
+			0.5, 0.5, 0.5,
+			0.5, -0.5, 0.5,
+
+			// zgoraj
+			-0.5, 0.5, -0.5,
+			-0.5, 0.5, 0.5,
+			0.5, 0.5, 0.5,
+			-0.5, 0.5, -0.5,
+			0.5, 0.5, 0.5,
+			0.5, 0.5, -0.5,
+
+			// spodaj
+			-0.5, -0.5, -0.5,
+			0.5, -0.5, -0.5,
+			0.5, -0.5, 0.5,
+			-0.5, -0.5, -0.5,
+			0.5, -0.5, 0.5,
+			-0.5, -0.5, 0.5
+		];
+
+		let scaledCubeVertices = cubeVertices.slice();
+		let scale = 0.4;
+		for (let i = 0; i < scaledCubeVertices.length; i++) {
+			scaledCubeVertices[i] *= scale;
+		}
+
+		// Naložim base kocko v buffer na GPU, ki ga v drawLoop uporabim za risanje kock in tal
+		bufferCube = gl.createBuffer();
+		vaoCube = gl.createVertexArray();
+		gl.bindVertexArray(vaoCube);
+		gl.bindBuffer(gl.ARRAY_BUFFER, bufferCube);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(scaledCubeVertices), gl.STATIC_DRAW);
+		gl.enableVertexAttribArray(0);
+		gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 3 * 4, 0);
 	}
 
 	var posY = 0, posX = 0;
@@ -105,6 +295,8 @@ window.addEventListener('load', function() {
 	initShaders();
 	constructGeometry();
 	setupInteraction(myCanvas);
+	setupMouseControls(myCanvas);
+
 
 	gl.clearColor(0.0, 0.2, 0.7, 1);
 
@@ -113,43 +305,81 @@ window.addEventListener('load', function() {
 		alert("Init error: " + e);
 	}
 
-	setInterval(drawLoop, 33);
+	setInterval(drawLoop, 20);
 
 	function drawLoop() {
-
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-		// nastavi viewport
-		//za naslednjo nalogo nastavi projekcijo in kamero in transformacije
-		
-		var PVM = glMatrix.mat4.identity(glMatrix.mat4.create());
-		/*var proj_matrix = glMatrix.mat4.perspective(glMatrix.mat4.create(), glMatrix.glMatrix.toRadian(80), myCanvas.width / myCanvas.height, 0.1, 1000);
+		gl.enable(gl.DEPTH_TEST);
+		let proj_matrix;
 
-		var model_matrix=glMatrix.mat4.identity(glMatrix.mat4.create());
-
-		model_matrix = glMatrix.mat4.translate(glMatrix.mat4.create(), model_matrix, glMatrix.vec3.fromValues(0, 0, -2));
-		model_matrix = glMatrix.mat4.rotate(glMatrix.mat4.create(), model_matrix, glMatrix.glMatrix.toRadian(posY), glMatrix.vec3.fromValues(0, 1, 0));
-		model_matrix = glMatrix.mat4.rotate(glMatrix.mat4.create(), model_matrix, glMatrix.glMatrix.toRadian(posX), glMatrix.vec3.fromValues(1, 0, 0));
-
-		var view_matrix = glMatrix.mat4.identity(glMatrix.mat4.create());
-		view_matrix = glMatrix.mat4.translate(glMatrix.mat4.create(), view_matrix, glMatrix.vec3.fromValues(0, 0, -2));
-
-		var PVM = glMatrix.mat4.multiply(glMatrix.mat4.create(), proj_matrix, glMatrix.mat4.multiply(glMatrix.mat4.create(), view_matrix, model_matrix));
-
-		PVM = glMatrix.mat4.rotate(glMatrix.mat4.create(), PVM, glMatrix.glMatrix.toRadian(posY), glMatrix.vec3.fromValues(0, 1, 0));
-		PVM = glMatrix.mat4.rotate(glMatrix.mat4.create(), PVM, glMatrix.glMatrix.toRadian(posX), glMatrix.vec3.fromValues(1, 0, 0));
-		*/
-
-		
-		gl.useProgram(program);
-		gl.uniformMatrix4fv(gl.getUniformLocation(program, "PVM"), false, PVM);
-
-		gl.bindVertexArray(vaoTrikotniki);
-		gl.drawArrays(gl.TRIANGLES, 0, 3);
-
-		var e = gl.getError();
-		if (e) {
-			alert("Draw error: " + e);
+		// P 
+		if (!orthoPerspective) {
+			proj_matrix = glMatrix.mat4.perspective(glMatrix.mat4.create(), glMatrix.glMatrix.toRadian(80), myCanvas.width / myCanvas.height, 0.1, 1000);
+		} else {
+			let aspect = myCanvas.width / myCanvas.height;
+    		let size = 2;
+			// ortho: left = -size * aspect, right = size * aspect, bottom = -size, top = size, near = 0.1, far = 1000
+			proj_matrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), -size * aspect, size * aspect, -size, size, 0.1, 1000);
 		}
-	}
+		
+		// V 
+		let view_matrix = glMatrix.mat4.identity(glMatrix.mat4.create());
+		glMatrix.mat4.rotateX(view_matrix, view_matrix, glMatrix.glMatrix.toRadian(cameraRotation[1]));
+		glMatrix.mat4.rotateY(view_matrix, view_matrix, glMatrix.glMatrix.toRadian(cameraRotation[0]));
+		glMatrix.mat4.translate(view_matrix, view_matrix, glMatrix.vec3.fromValues(-cameraPos[0], -cameraPos[1], -cameraPos[2] - cameraDistance));
 
+		gl.useProgram(program);
+		let colorLoc = gl.getUniformLocation(program, "CubeColor");
+
+		// M za tla
+		let M_floor = glMatrix.mat4.create();
+		glMatrix.mat4.scale(M_floor, M_floor, glMatrix.vec3.fromValues(10, 0.1, 10)); // Skaliramo base kocko da postane tla
+		glMatrix.mat4.translate(M_floor, M_floor, glMatrix.vec3.fromValues(0, -6, 0)); // Tla pomaknemo malo nižje
+
+		let PVM_floor = glMatrix.mat4.create(); // Izračunamo PVM matriko za tla
+		glMatrix.mat4.multiply(PVM_floor, view_matrix, M_floor);       // V * M
+		glMatrix.mat4.multiply(PVM_floor, proj_matrix, PVM_floor);     // P * V * M
+
+		// Tla 
+		gl.bindVertexArray(vaoCube);
+		gl.uniformMatrix4fv(gl.getUniformLocation(program, "PVM"), false, PVM_floor);
+		gl.uniform3fv(colorLoc, new Float32Array([0, 0, 0]));
+		gl.drawArrays(gl.TRIANGLES, 0, 36);
+
+		// Piramida
+		let M_pyramid = glMatrix.mat4.create();
+        glMatrix.mat4.translate(M_pyramid, M_pyramid, glMatrix.vec3.fromValues(...pyramidPosition));  // Premik piramide
+        glMatrix.mat4.rotateX(M_pyramid, M_pyramid, glMatrix.glMatrix.toRadian(pyramidRotation[0]));  // Rotacije piramide
+        glMatrix.mat4.rotateY(M_pyramid, M_pyramid, glMatrix.glMatrix.toRadian(pyramidRotation[1]));
+        glMatrix.mat4.rotateZ(M_pyramid, M_pyramid, glMatrix.glMatrix.toRadian(pyramidRotation[2]));
+        glMatrix.mat4.multiply(M_pyramid, M_pyramid, shearMatrix(...pyramidShear));  // Shear piramide
+        glMatrix.mat4.scale(M_pyramid, M_pyramid, glMatrix.vec3.fromValues(...pyramidScale)); // Skaliranje piramide
+
+        // Draw pyramid
+        for(let i = 0; i < cubePositions.length; i++){
+            let pos = cubePositions[i]; let color = cubeColors[i];
+            let Mk = glMatrix.mat4.create();
+            glMatrix.mat4.translate(Mk, Mk, glMatrix.vec3.fromValues(pos[0], pos[1], pos[2]));
+
+            let PVM_cube = glMatrix.mat4.create();
+            glMatrix.mat4.multiply(PVM_cube, view_matrix, M_pyramid);
+            glMatrix.mat4.multiply(PVM_cube, PVM_cube, Mk);
+            glMatrix.mat4.multiply(PVM_cube, proj_matrix, PVM_cube);
+
+            gl.uniformMatrix4fv(gl.getUniformLocation(program,"PVM"), false, PVM_cube);
+            gl.uniform3fv(colorLoc, new Float32Array(color));
+            gl.drawArrays(gl.TRIANGLES, 0, 36);
+        }
+
+		// Spreminjanje barv iz prejšnje naloge
+		t += 0.1;
+		for (let i = 0; i < cubeColors.length; i++) {
+			cubeColors[i][0] = 0.75 + 0.5 * Math.sin(t * 1 + i * 3);
+			cubeColors[i][1] = 0.75 + 0.5 * Math.sin(t * 0.5 + i * 5);
+			cubeColors[i][2] = 0.75 + 0.5 * Math.sin(t * 1.5 + i * 7);
+		}
+
+		let e = gl.getError();
+			if (e) alert("Draw error: " + e);
+	}
 });
