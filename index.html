@@ -37,16 +37,17 @@
         </script>
     </head>
     <body>
+        <div id="container" style="display: flex;" height="100%" gap="20px">
         <div id="containerDiv">
-            <canvas id="myCanvas" width="800" height="800">Ni podpore za canvas?.</canvas>
+            <canvas id="myCanvas" width="600" height="600">Ni podpore za canvas?.</canvas>
         </div>   
         <div>
-        <div>
+        <div style="padding:10px; border-bottom:1px solid #ccc; margin-bottom:10px;">
             <label>Projection: </label>
             <button id="toggleProjection">Perspective</button>
         </div>
 
-        <div id="controls" style="margin-top:10px;">
+        <div id="controls" style="width:300px; overflow-y:auto; padding:10px; border-left:1px solid #ccc; justify-content: flex-end;">
             <h3>Pyramid Controls</h3>
             
             <div>

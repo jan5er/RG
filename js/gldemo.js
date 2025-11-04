@@ -138,7 +138,7 @@ window.addEventListener('load', function() {
 			if (isRightMB) {
 				cameraRotation[0] += dx * 0.5;
 				cameraRotation[1] += dy * 0.5;
-				if (cameraRotation[1] > 89.0) cameraRotation[1] = 89.0;
+				if (cameraRotation[1] > 89.0) cameraRotation[1] = 89.0; // omejimo kote gledanja da se ne izguimo
 				if (cameraRotation[1] < -89.0) cameraRotation[1] = -89.0;
 			}
 
@@ -409,18 +409,19 @@ window.addEventListener('load', function() {
         glMatrix.mat4.multiply(M_pyramid, M_pyramid, pyramidShearMatrix);  // Shear piramide
         glMatrix.mat4.scale(M_pyramid, M_pyramid, glMatrix.vec3.fromValues(...pyramidScale)); // Skaliranje piramide
 
-        // Draw pyramid
+		// Narišemo kocke piramide
         for(let i = 0; i < cubePositions.length; i++){
-            let pos = cubePositions[i]; let color = cubeColors[i];
-            let Mk = glMatrix.mat4.create();
-            glMatrix.mat4.translate(Mk, Mk, glMatrix.vec3.fromValues(pos[0], pos[1], pos[2]));
+            let pos = cubePositions[i]; 
+			let color = cubeColors[i];
+            let M_cube = glMatrix.mat4.create(); // M za posamezno kocko piramide (temp)
+            glMatrix.mat4.translate(M_cube, M_cube, glMatrix.vec3.fromValues(pos[0], pos[1], pos[2]));
 
             let PVM_cube = glMatrix.mat4.create();
-            glMatrix.mat4.multiply(PVM_cube, view_matrix, M_pyramid);
-            glMatrix.mat4.multiply(PVM_cube, PVM_cube, Mk);
-            glMatrix.mat4.multiply(PVM_cube, proj_matrix, PVM_cube);
+            glMatrix.mat4.multiply(PVM_cube, view_matrix, M_pyramid);  // V * M_pyramid
+            glMatrix.mat4.multiply(PVM_cube, PVM_cube, M_cube);  	  // V * M_pyramid * M_cube - zato ker je M_cube lokalna transformacija kocke 
+            glMatrix.mat4.multiply(PVM_cube, proj_matrix, PVM_cube); 	// P * V * M_pyramid * M_cube
 
-            gl.uniformMatrix4fv(gl.getUniformLocation(program,"PVM"), false, PVM_cube);
+            gl.uniformMatrix4fv(gl.getUniformLocation(program,"PVM"), false, PVM_cube); // Pošljemo PVM matriko
             gl.uniform3fv(colorLoc, new Float32Array(color));
             gl.drawArrays(gl.TRIANGLES, 0, 36);
         }
@@ -445,7 +446,7 @@ window.addEventListener('load', function() {
 		let y = Math.sin(pitch);
 		let z = Math.cos(pitch) * Math.cos(yaw);
 
-		return [x, y, -z];
+		return [x, -y, -z];
 	}
 
 	function setupSliders() {
@@ -499,14 +500,13 @@ window.addEventListener('load', function() {
 		shearTypeSelect.addEventListener("change", updateShear);
 	}
 
-
 	function resetSliders() {
 		const defaultValues = {
 			"scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0,
 			"rotX": 0, "rotY": 0, "rotZ": 0,
 			"posX": 0, "posY": 0, "posZ": 0,
-			"shearThetaInput": 0.0,
-			"shearPhiInput": 0.0
+			"shearTheta": 90.0,
+			"shearPhi": 90.0
 		};
 		Object.keys(defaultValues).forEach(key => {
 			const slider = document.getElementById(key);
@@ -514,6 +514,8 @@ window.addEventListener('load', function() {
 			slider.value = defaultValues[key];
 			display.textContent = defaultValues[key];
 		});
+
+		pyramidShearMatrix = shearMatrix(shearType, shearTheta, shearPhi);
 	}
 
 });
