@@ -23,17 +23,39 @@ let lastMouseY = 0;
 let cameraPos = [0, 0, 0]; // začetna pozicija kamere
 let cameraRotation = [0, 0, 0]; 
 let pyramidScale = [1.0, 1.0, 1.0];   // skaliranje
-let pyramidShear = [0.0, 0.0, 0.0];   // shear XY, XZ, YZ
+let pyramidShearMatrix = glMatrix.mat4.create();
 let pyramidRotation = [0, 0, 0];      
 let pyramidPosition = [0, 0, 0];
 let orthoPerspective = false;
+let shearTheta = 90;
+let shearPhi = 90;
+let shearType = "XY";
 
-function shearMatrix(shearXY, shearXZ, shearYZ) {
-	let shearMat = glMatrix.mat4.create();
-	shearMat[4] = shearXY;
-	shearMat[8] = shearXZ;
-	shearMat[9] = shearYZ;
-	return shearMat;
+function shearMatrix(type, thetaDeg, phiDeg) {
+    let theta = glMatrix.glMatrix.toRadian(thetaDeg);
+    let phi = glMatrix.glMatrix.toRadian(phiDeg);
+
+    let ctgTheta = 1 / Math.tan(theta);
+    let ctgPhi = 1 / Math.tan(phi);
+
+    let shearMat = glMatrix.mat4.create();
+
+    switch(type) {
+        case "XY":
+            shearMat[8] = ctgTheta; 
+            shearMat[9] = ctgPhi;  
+            break;
+        case "XZ":
+            shearMat[4] = ctgPhi;  
+            shearMat[8] = ctgTheta;
+            break;
+        case "YZ":
+            shearMat[1] = ctgTheta; 
+            shearMat[2] = ctgPhi;
+            break;
+    }
+
+    return shearMat;
 }
 
 window.addEventListener('load', function() {
@@ -164,12 +186,35 @@ window.addEventListener('load', function() {
 					pyramidScale[i] -= 0.1;
 				break;
 
-            case 'y': pyramidShear[0]-=0.05; break;
-            case 'x': pyramidShear[0]+=0.05; break;
-			case 'c': pyramidShear[1]-=0.05; break;
-			case 'v': pyramidShear[1]+=0.05; break;
-			case 'b': pyramidShear[2]-=0.05; break;
-			case 'n': pyramidShear[2]+=0.05; break;
+			case 'y': 
+				shearTheta -= 5;
+				pyramidShearMatrix = shearMatrix(shearType, shearTheta, shearPhi);
+				break;
+			case 'x':
+				shearTheta += 5;
+				pyramidShearMatrix = shearMatrix(shearType, shearTheta, shearPhi);
+				break;
+			case 'c': 
+				shearPhi -= 5;
+				pyramidShearMatrix = shearMatrix(shearType, shearTheta, shearPhi);
+				break;	
+			case 'v': 
+				shearPhi += 5;
+				pyramidShearMatrix = shearMatrix(shearType, shearTheta, shearPhi);
+				break;
+			case 'b': 
+				shearType = "XZ"; 
+				pyramidShearMatrix = shearMatrix(shearType, shearTheta, shearPhi);
+				break;
+			case 'n': 
+				shearType = "YZ"; 
+				pyramidShearMatrix = shearMatrix(shearType, shearTheta, shearPhi);
+				break;
+			case 'm': 
+				shearType = "XY"; 
+				pyramidShearMatrix = shearMatrix(shearType, shearTheta, shearPhi);
+				break;
+
 			
 			case 'Escape': 
 				pyramidScale = [1.0, 1.0, 1.0];
@@ -361,7 +406,7 @@ window.addEventListener('load', function() {
         glMatrix.mat4.rotateX(M_pyramid, M_pyramid, glMatrix.glMatrix.toRadian(pyramidRotation[0]));  // Rotacije piramide
         glMatrix.mat4.rotateY(M_pyramid, M_pyramid, glMatrix.glMatrix.toRadian(pyramidRotation[1]));
         glMatrix.mat4.rotateZ(M_pyramid, M_pyramid, glMatrix.glMatrix.toRadian(pyramidRotation[2]));
-        glMatrix.mat4.multiply(M_pyramid, M_pyramid, shearMatrix(...pyramidShear));  // Shear piramide
+        glMatrix.mat4.multiply(M_pyramid, M_pyramid, pyramidShearMatrix);  // Shear piramide
         glMatrix.mat4.scale(M_pyramid, M_pyramid, glMatrix.vec3.fromValues(...pyramidScale)); // Skaliranje piramide
 
         // Draw pyramid
@@ -405,34 +450,63 @@ window.addEventListener('load', function() {
 
 	function setupSliders() {
 		const sliderData = [
-			["scaleX", pyramidScale, 0], ["scaleY", pyramidScale, 1], ["scaleZ", pyramidScale, 2],
-			["shearXY", pyramidShear, 0], ["shearXZ", pyramidShear, 1], ["shearYZ", pyramidShear, 2],
-			["rotX", pyramidRotation, 0], ["rotY", pyramidRotation, 1], ["rotZ", pyramidRotation, 2],
-			["posX", pyramidPosition, 0], ["posY", pyramidPosition, 1], ["posZ", pyramidPosition, 2]
+			["scaleX", pyramidScale, 0],
+			["scaleY", pyramidScale, 1],
+			["scaleZ", pyramidScale, 2],
+			["rotX", pyramidRotation, 0],
+			["rotY", pyramidRotation, 1],
+			["rotZ", pyramidRotation, 2],
+			["posX", pyramidPosition, 0],
+			["posY", pyramidPosition, 1],
+			["posZ", pyramidPosition, 2]
 		];
-		const button = document.getElementById("toggleProjection");
-		button.addEventListener('click', () => {
+
+		let button = document.getElementById("toggleProjection");
+		button.addEventListener("click", () => {
 			orthoPerspective = !orthoPerspective;
 			button.textContent = orthoPerspective ? "Orthographic" : "Perspective";
 			console.log("Projection mode toggled:", orthoPerspective ? "Orthographic" : "Perspective");
 		});
 
 		sliderData.forEach(([id, arr, index]) => {
-			const slider = document.getElementById(id);
-			const display = document.getElementById(id + "Val");
-			slider.addEventListener('input', () => {
+			let slider = document.getElementById(id);
+			let display = document.getElementById(id + "Val");
+			slider.addEventListener("input", () => {
 				arr[index] = parseFloat(slider.value);
 				display.textContent = slider.value;
 			});
 		});
+
+		let thetaSlider = document.getElementById("shearTheta");
+		let phiSlider = document.getElementById("shearPhi");
+		let thetaDisplay = document.getElementById("shearThetaVal");
+		let phiDisplay = document.getElementById("shearPhiVal");
+		let shearTypeSelect = document.getElementById("shearType");
+
+		function updateShear() {
+			let theta = parseFloat(thetaSlider.value);
+			let phi = parseFloat(phiSlider.value);
+			let type = shearTypeSelect.value;
+
+			thetaDisplay.textContent = theta.toFixed(1);
+			phiDisplay.textContent = phi.toFixed(1);
+
+			pyramidShearMatrix = shearMatrix(type, theta, phi);
+		}
+
+		thetaSlider.addEventListener("input", updateShear);
+		phiSlider.addEventListener("input", updateShear);
+		shearTypeSelect.addEventListener("change", updateShear);
 	}
+
 
 	function resetSliders() {
 		const defaultValues = {
 			"scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0,
-			"shearXY": 0.0, "shearXZ": 0.0, "shearYZ": 0.0,
 			"rotX": 0, "rotY": 0, "rotZ": 0,
-			"posX": 0, "posY": 0, "posZ": 0
+			"posX": 0, "posY": 0, "posZ": 0,
+			"shearThetaInput": 0.0,
+			"shearPhiInput": 0.0
 		};
 		Object.keys(defaultValues).forEach(key => {
 			const slider = document.getElementById(key);
