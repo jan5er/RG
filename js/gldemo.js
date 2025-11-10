@@ -374,23 +374,23 @@ window.addEventListener('load', function() {
 		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 		for (let v of objectData.vertices) {
 			vboData.push(
-				v.position[0], v.position[1], v.position[2],
-				v.normal[0], v.normal[1], v.normal[2],
-				v.texture[0], v.texture[1]
+				v.position[0], v.position[1], v.position[2], // 0-3
+				v.normal[0], v.normal[1], v.normal[2],    	 // 3-6
+				v.texture[0], v.texture[1]					 // 6-8	
 			);
 		}
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vboData), gl.STATIC_DRAW);
 		
-		const stride = 8 * 4; // 8 floatov na oglišče
+		const stride = 8 * 4; // 8 floatov na oglišče (vboData ima 8 lastnosti * float(4 B))
 
-		gl.enableVertexAttribArray(0);
-		gl.vertexAttribPointer(0, 3, gl.FLOAT, false, stride, 0);
+		gl.enableVertexAttribArray(0); // VertexPosition na lokaciji 0
+		gl.vertexAttribPointer(0, 3, gl.FLOAT, false, stride, 0); // VertexPosition, kot vedno (0-3)
 
-		gl.enableVertexAttribArray(1);
-		gl.vertexAttribPointer(1, 3, gl.FLOAT, false, stride, 3 * 4);
+		gl.enableVertexAttribArray(1); // VertexNormal na lokaciji 1
+		gl.vertexAttribPointer(1, 3, gl.FLOAT, false, stride, 3 * 4); // VertexNormal (offset: 3-6, vsak 4 B)
 
-		gl.enableVertexAttribArray(2);
-		gl.vertexAttribPointer(2, 2, gl.FLOAT, false, stride, 6 * 4);
+		gl.enableVertexAttribArray(2); // VertexUV na lokaciji 2
+		gl.vertexAttribPointer(2, 2, gl.FLOAT, false, stride, 6 * 4); // VertexUV/Texture (offset: 6-8, vsak 4B)
 
 		// EBO: uporabimo, ker brez tega sem imel velike luknje v objektu (hrani indekse trikotnikov, ki kažejo na oglišča v VBO)
 		// EBO povežemo šele ko sta VAO in VBO povezana
