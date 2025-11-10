@@ -1,18 +1,3 @@
-let cubePositions = [
-    [-0.4, -0.4, 0], [0, -0.4, 0], [0.4, -0.4, 0],
-    [-0.2, 0, 0], [0.2, 0, 0], 
-    [0, 0.4, 0]  
-];
-
-let cubeColors = [
-    [1, 0, 0],  
-    [0, 1, 0],   
-    [0, 0, 1],   
-    [1, 1, 0],  
-    [1, 0, 1],  
-    [0, 1, 1]
-];
-
 let t = 0;
 
 let cameraDistance = 3;
@@ -22,7 +7,7 @@ let lastMouseX = 0;
 let lastMouseY = 0;
 let cameraPos = [0, 0, 0]; // začetna pozicija kamere
 let cameraRotation = [0, 0, 0]; 
-let pyramidScale = [1.0, 1.0, 1.0];   // skaliranje
+let pyramidScale = [1.0, 1.0, 1.0]; 
 let pyramidShearMatrix = glMatrix.mat4.create();
 let pyramidRotation = [0, 0, 0];      
 let pyramidPosition = [0, 0, 0];
@@ -30,6 +15,11 @@ let orthoPerspective = false;
 let shearTheta = 90;
 let shearPhi = 90;
 let shearType = "XY";
+let shearAnimation = false;
+
+let uploadedObjects = [];
+let objects = [];
+let selectedObjectIndex = -1;
 
 function shearMatrix(type, thetaDeg, phiDeg) {
     let theta = glMatrix.glMatrix.toRadian(thetaDeg);
@@ -59,6 +49,51 @@ function shearMatrix(type, thetaDeg, phiDeg) {
 }
 
 window.addEventListener('load', function() {
+
+	let upload = document.getElementById('uploadFile');
+	upload.addEventListener('change', (e) => {
+		let files = e.target.files;
+		for (let file of files) {
+			let reader = new FileReader();
+			reader.onload = (ev) => {
+				let objectData = parseObject(ev.target.result);
+				uploadedObjects.push({
+					name: file.name,
+					objectData: objectData
+				});
+			};
+			reader.readAsText(file);
+		}
+	})
+
+	let insertButton = document.getElementById("insertObject");
+	insertButton.addEventListener("click", () => {
+		let select = document.getElementById("objectSelect");
+		
+		for (let item of uploadedObjects) {
+			let gpuObj = uploadObject(item.objectData);
+
+			objects.push({
+				name: item.name,
+				vao: gpuObj.vao,
+				vertexCount: gpuObj.vertexCount,
+				position: [0,0,0],
+				rotation: [0,0,0],
+				scale: [1,1,1],
+				shearMatrix: glMatrix.mat4.create(),
+				colorMode: "normal"
+			});
+
+			console.log("Inserted object:", item.name);
+			let option = document.createElement("option");
+			option.value = objects.length - 1; // index v arrayu
+			option.textContent = item.name;
+			select.appendChild(option);
+		}
+
+		uploadedObjects = [];
+	});
+
 
 	/** @type {WebGL2RenderingContext} */
 	var gl = null;
@@ -156,13 +191,24 @@ window.addEventListener('load', function() {
 	}
 
 	window.addEventListener('keydown', (e)=>{
+		if(e.key === 'Tab'){
+			selectedObjectIndex = (selectedObjectIndex + 1) % objects.length;
+			e.preventDefault();
+			console.log("Selected object:", objects[selectedObjectIndex].name);
+		}
+	});
+
+	window.addEventListener('keydown', (e)=>{
+		let selectedObject = objects[selectedObjectIndex];
+		if (!selectedObject) return;
+		
         switch(e.key){
-            case 'ArrowUp': pyramidPosition[1]+=0.1; break;
-            case 'ArrowDown': pyramidPosition[1]-=0.1; break;
-            case 'ArrowLeft': pyramidPosition[0]-=0.1; break;
-            case 'ArrowRight': pyramidPosition[0]+=0.1; break;
-			case '-': pyramidPosition[2]+=0.1; break;
-			case '.': pyramidPosition[2]-=0.1; break;
+            case 'ArrowUp': selectedObject.position[1]+=0.1; break;
+            case 'ArrowDown': selectedObject.position[1]-=0.1; break;
+            case 'ArrowLeft': selectedObject.position[0]-=0.1; break;
+            case 'ArrowRight': selectedObject.position[0]+=0.1; break;
+			case '-': selectedObject.position[2]+=0.1; break;
+			case '.': selectedObject.position[2]-=0.1; break;
 			
             case 'q': pyramidRotation[1]-=5; break;
             case 'e': pyramidRotation[1]+=5; break;
@@ -234,6 +280,116 @@ window.addEventListener('load', function() {
 	*/
 	let bufferCube;
 	let vaoCube;
+
+	function parseObject(objectData) {
+		let positions = [[0, 0, 0]];
+		let normals = [[0, 0, 0]];
+		let texture_uvs = [[0, 0]];
+		let vertices = [];
+		let indices = [];
+
+		/*
+		# www.blender.org: ignoriramo komentarje
+		v 2.688762 0.000000 0.000000	: vertex točke - določa pozicijo (x,y,z)
+		vt 0.719652 0.186670			: vertex texture - določa teksturo (u, v)
+		vn 0.861200 0.495400 -0.113400	: vertex normal - normala vektorja 
+		s 1								: smoothing - glajenje 
+		f 13/1/1 14/2/2 2/3/3			: face - lica/ploskve objekta (i[v]/i[vt]/i[vn])
+		*/
+		let map = {};
+
+		let dataLine = objectData.split('\n');
+		for (let line of dataLine) {
+			line = line.trim();
+			if (line.startsWith('#')) continue;
+			if (!line) continue;
+			let parsed_line = line.split(/\s+/); // "v 1.0 2.0 3.0" -> ["v","1.0","2.0","3.0"]
+
+			switch(parsed_line[0]) {
+				case 'v': 
+					positions.push(parsed_line.slice(1).map(parseFloat));
+					break;
+				case 'vt':
+					texture_uvs.push(parsed_line.slice(1).map(parseFloat));
+					break;
+				case 'vn':
+					normals.push(parsed_line.slice(1).map(parseFloat));
+					break;
+				case 's':
+					break;
+				case 'f':
+					let face = parsed_line.slice(1);  // 13/1/1 14/2/2 2/3/3
+					for (let faceVertex of face) {
+						let [i_v, i_vt, i_vn] = faceVertex.split('/').map(x => x ? parseInt(x) : 0);
+						let key = `${i_v}/${i_vt}/${i_vn}`; // Naredimo ključ glede na indekse, ki opisujejo lice
+
+						if (!(key in map)) { // Če tak ključ še ne obstaja v slovarju, novo 
+							map[key] = vertices.length; // Dobimo zadnje mesto seznama oglišč
+
+							vertices.push({
+								position: positions[i_v],
+								texture: texture_uvs[i_vt] || [0, 0],
+								normal: normals[i_vn] || [0, 0, 0]
+							})
+						}
+
+						indices.push(map[key]);
+					}
+					break;
+			}
+
+		}
+
+		return { positions, normals, texture_uvs, vertices, indices };
+	}
+
+	function uploadObject(objectData) {
+		/*
+		bufferCube = gl.createBuffer();
+		vaoCube = gl.createVertexArray();
+		gl.bindVertexArray(vaoCube);
+		gl.bindBuffer(gl.ARRAY_BUFFER, bufferCube);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(scaledCubeVertices), gl.STATIC_DRAW);
+		gl.enableVertexAttribArray(0);
+		gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 3 * 4, 0);
+		*/
+		let vboData = [];
+		for (let v of objectData.vertices) {
+			vboData.push(
+				v.position[0], v.position[1], v.position[2],
+				v.normal[0], v.normal[1], v.normal[2],
+				v.texture[0], v.texture[1]
+			);
+		}
+
+		let vertexData = new Float32Array(vboData);
+
+		let buffer = gl.createBuffer();
+
+		let vao = gl.createVertexArray();
+		gl.bindVertexArray(vao);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+		gl.bufferData(gl.ARRAY_BUFFER, vertexData, gl.STATIC_DRAW);
+
+		const stride = 8 * 4 // 8 floatov na oglišče (3 positioni, 3 normale, 2 uv
+		
+		gl.enableVertexAttribArray(0);
+		gl.vertexAttribPointer(0, 3, gl.FLOAT, false, stride, 0);
+
+		gl.enableVertexAttribArray(1);
+    	gl.vertexAttribPointer(1, 3, gl.FLOAT, false, stride, 3 * 4);
+
+		gl.enableVertexAttribArray(2);
+    	gl.vertexAttribPointer(2, 2, gl.FLOAT, false, stride, 6 * 4);
+
+		return {
+			vao,
+			ebo,
+			vertexCount: vertexData.length / 8 // Vsako oglišče = 8 floatov
+		};
+
+	}
 
 	function constructGeometry() {
 		// ustvari podatke za tla (koordinate oglišč, normale,
@@ -401,37 +557,44 @@ window.addEventListener('load', function() {
 		gl.drawArrays(gl.TRIANGLES, 0, 36);
 
 		// Piramida
-		let M_pyramid = glMatrix.mat4.create();
-        glMatrix.mat4.translate(M_pyramid, M_pyramid, glMatrix.vec3.fromValues(...pyramidPosition));  // Premik piramide
-        glMatrix.mat4.rotateX(M_pyramid, M_pyramid, glMatrix.glMatrix.toRadian(pyramidRotation[0]));  // Rotacije piramide
-        glMatrix.mat4.rotateY(M_pyramid, M_pyramid, glMatrix.glMatrix.toRadian(pyramidRotation[1]));
-        glMatrix.mat4.rotateZ(M_pyramid, M_pyramid, glMatrix.glMatrix.toRadian(pyramidRotation[2]));
-        glMatrix.mat4.multiply(M_pyramid, M_pyramid, pyramidShearMatrix);  // Shear piramide
-        glMatrix.mat4.scale(M_pyramid, M_pyramid, glMatrix.vec3.fromValues(...pyramidScale)); // Skaliranje piramide
+		for (let obj of objects) {
+			let M = glMatrix.mat4.create();
+			glMatrix.mat4.translate(M, M, obj.position);
+			glMatrix.mat4.rotateX(M, M, glMatrix.glMatrix.toRadian(obj.rotation[0]));
+			glMatrix.mat4.rotateY(M, M, glMatrix.glMatrix.toRadian(obj.rotation[1]));
+			glMatrix.mat4.rotateZ(M, M, glMatrix.glMatrix.toRadian(obj.rotation[2]));
+			glMatrix.mat4.scale(M, M, obj.scale);
+			glMatrix.mat4.multiply(M, M, obj.shearMatrix);
 
-		// Narišemo kocke piramide
-        for(let i = 0; i < cubePositions.length; i++){
-            let pos = cubePositions[i]; 
-			let color = cubeColors[i];
-            let M_cube = glMatrix.mat4.create(); // M za posamezno kocko piramide (temp)
-            glMatrix.mat4.translate(M_cube, M_cube, glMatrix.vec3.fromValues(pos[0], pos[1], pos[2]));
+			let PVM = glMatrix.mat4.create();
+			glMatrix.mat4.multiply(PVM, view_matrix, M);
+			glMatrix.mat4.multiply(PVM, proj_matrix, PVM);
 
-            let PVM_cube = glMatrix.mat4.create();
-            glMatrix.mat4.multiply(PVM_cube, view_matrix, M_pyramid);  // V * M_pyramid
-            glMatrix.mat4.multiply(PVM_cube, PVM_cube, M_cube);  	  // V * M_pyramid * M_cube - zato ker je M_cube lokalna transformacija kocke 
-            glMatrix.mat4.multiply(PVM_cube, proj_matrix, PVM_cube); 	// P * V * M_pyramid * M_cube
+			gl.bindVertexArray(obj.vao);
+			gl.uniformMatrix4fv(gl.getUniformLocation(program, "PVM"), false, PVM);
 
-            gl.uniformMatrix4fv(gl.getUniformLocation(program,"PVM"), false, PVM_cube); // Pošljemo PVM matriko
-            gl.uniform3fv(colorLoc, new Float32Array(color));
-            gl.drawArrays(gl.TRIANGLES, 0, 36);
-        }
+			// barvanje glede na izbrani mode
+			let colorLoc = gl.getUniformLocation(program, "CubeColor");
+			if (obj.colorMode === "normal") gl.uniform3fv(colorLoc, [0.7, 0.7, 0.7]);
 
-		// Spreminjanje barv iz prejšnje naloge
-		t += 0.1;
-		for (let i = 0; i < cubeColors.length; i++) {
-			cubeColors[i][0] = 0.75 + 0.5 * Math.sin(t * 1 + i * 3);
-			cubeColors[i][1] = 0.75 + 0.5 * Math.sin(t * 0.5 + i * 5);
-			cubeColors[i][2] = 0.75 + 0.5 * Math.sin(t * 1.5 + i * 7);
+			gl.drawArrays(gl.TRIANGLES, 0, obj.vertexCount);
+		}
+
+
+		if (shearAnimation) {
+			shearTheta += Math.sin(t) * 4;
+			shearPhi += Math.sin(t - 2) * 4;
+			if (shearPhi >= 180) shearPhi = 0;
+			if (shearTheta >= 180) shearTheta = 0;
+			pyramidShearMatrix = shearMatrix(shearType, shearTheta, shearPhi);
+			let thetaSlider = document.getElementById("shearTheta");
+			let thetaDisplay = document.getElementById("shearThetaVal");
+			let phiSlider = document.getElementById("shearPhi");
+			let phiDisplay = document.getElementById("shearPhiVal");
+			phiSlider.value = shearPhi;
+			phiDisplay.textContent = shearPhi.toFixed(1);
+			thetaSlider.value = shearTheta;
+			thetaDisplay.textContent = shearTheta.toFixed(1);
 		}
 
 		let e = gl.getError();
@@ -467,6 +630,13 @@ window.addEventListener('load', function() {
 			orthoPerspective = !orthoPerspective;
 			button.textContent = orthoPerspective ? "Orthographic" : "Perspective";
 			console.log("Projection mode toggled:", orthoPerspective ? "Orthographic" : "Perspective");
+		});
+
+		let shearButton = document.getElementById("toggleShearAnimation");
+		shearButton.addEventListener("click", () => {
+			shearAnimation = !shearAnimation;
+			shearButton.textContent = shearAnimation ? "Stop Shear Animation" : "Animate shear";
+			console.log("Shear animation toggled:", shearAnimation ? "On" : "Off");
 		});
 
 		sliderData.forEach(([id, arr, index]) => {
