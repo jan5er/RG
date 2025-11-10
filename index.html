@@ -14,26 +14,42 @@
             uniform mat4 PVM;
 
             layout(location = 0) in vec3 VertexPosition;
-            //layout(location = 1) in vec3 VertexColor;
+            layout(location = 1) in vec3 VertexNormal;
+            layout(location = 2) in vec2 VertexUV;
 
             uniform vec3 CubeColor;
+            
+            out vec3 vColor;
+            out vec3 vNormal;
+            out vec2 vUV;
 
-            out vec3 Color;
             void main(){
                 gl_Position=PVM * vec4(VertexPosition,1);
-                Color = CubeColor;
+                vNormal = VertexNormal;
+                vUV = VertexUV;
+                vColor = CubeColor;
             }
 
         </script>
         <script id="simple-fs" type="x-shader/x-fragment">#version 300 es
 
             precision mediump float;
-            in vec3 Color;
+
+            uniform int ColorMode;
+            in vec3 vNormal;
+            in vec2 vUV;
+            in vec3 vColor;
 
             out vec4 color;
             void main(){
-                color=vec4(Color, 1.0);
-            }
+                if (ColorMode == 0) {
+                    color = vec4(vColor, 1.0);
+                } else if (ColorMode == 1) {
+                    color = vec4(vNormal, 1.0);
+                } else if (ColorMode == 2) {
+                    color = vec4(vUV, 0.0, 1.0);
+                } else color = vec4(0.5, 0.5, 0.5, 1.0);
+            } 
         </script>
     </head>
     <body>
@@ -97,6 +113,15 @@
             <div>
                 <label>Position Z: <span id="posZVal">0</span></label>
                 <input type="range" id="posZ" min="-5" max="5" step="0.01" value="0">
+            </div>
+
+            <div>
+                <label>Color mode: </label>
+                <select id="colorMode">
+                    <option value="normal">Normal</option>
+                    <option value = "normala">Normala based</option>
+                    <option value="uv">UV based</option>
+                </select>
             </div>
 
             <div>

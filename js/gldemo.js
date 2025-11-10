@@ -1,5 +1,7 @@
 let t = 0;
 
+let CubeColor = [1, 0, 1];
+
 let cameraDistance = 3;
 let isLeftMB = false;
 let isRightMB = false;	
@@ -106,6 +108,12 @@ window.addEventListener('load', function() {
 		shearAnimation = !shearAnimation;
 	});
 
+	document.getElementById("colorMode").addEventListener("change", (e) => {
+		if (selectedObjectIndex < 0) return;
+		objects[selectedObjectIndex].colorMode = e.target.value;
+	});
+
+
 	/** @type {WebGL2RenderingContext} */
 	var gl = null;
 
@@ -205,7 +213,9 @@ window.addEventListener('load', function() {
 		if(e.key === 'Tab'){
 			selectedObjectIndex = (selectedObjectIndex + 1) % objects.length;
 			e.preventDefault();
-			console.log("Selected object:", objects[selectedObjectIndex].name);
+			let objectDropdown = document.getElementById("objectSelect");
+			objectDropdown.selectedIndex = selectedObjectIndex;
+			updateSlidersForSelectedObject();
 		}
 	});
 
@@ -580,13 +590,31 @@ window.addEventListener('load', function() {
 			gl.bindVertexArray(obj.vao);
 			gl.uniformMatrix4fv(gl.getUniformLocation(program, "PVM"), false, PVM);
 
-			let colorLoc = gl.getUniformLocation(program, "CubeColor");
-			if (obj.colorMode === "normal") gl.uniform3fv(colorLoc, [0.7, 0.7, 0.7]);
+			let colorModeLoc = gl.getUniformLocation(program, "ColorMode");
+
+			switch(obj.colorMode) {
+				case "normala": 
+					gl.uniform1i(colorModeLoc, 1); 
+					break;
+				case "uv": 
+					gl.uniform1i(colorModeLoc, 2); 
+					break;
+				default:
+					gl.uniform1i(colorModeLoc, 0);
+					break;
+			}
+
+			if (obj.colorMode === "normal") gl.uniform3fv(colorLoc, CubeColor);
 
 			gl.drawElements(gl.TRIANGLES, obj.vertexCount, gl.UNSIGNED_SHORT, 0);
 		}
 
+		CubeColor[0] = 0.75 + 0.5 * Math.sin(t); 
+		CubeColor[1] = 0.75 + 0.5 * Math.sin(t * 0.5); 
+		CubeColor[2] = 0.75 + 0.5 * Math.sin(t * 1.5); 
+
 		t += 0.05
+
 
 		if (shearAnimation) {
 			if (selectedObjectIndex < 0) return;
@@ -714,7 +742,10 @@ window.addEventListener('load', function() {
 			display.textContent = arr[idx].toFixed(2);
 		});
 
-		// shear sliderje posodobimo posebej
+		// color mode in shear sliderje posodobimo posebej
+		let colorMode = document.getElementById("colorMode");
+		colorMode.value = selectedObject.colorMode;
+
 		let thetaSlider = document.getElementById("shearTheta");
 		let phiSlider = document.getElementById("shearPhi");
 		let thetaDisplay = document.getElementById("shearThetaVal");
