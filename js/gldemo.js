@@ -557,6 +557,8 @@ window.addEventListener('load', function() {
 		gl.useProgram(program);
 		let colorLoc = gl.getUniformLocation(program, "CubeColor");
 
+		// TODO: POMIKANJE LUČI 
+
 		// Pošljem podatke o kameri in luči v shader (PHONG)
 		gl.uniform3fv(gl.getUniformLocation(program, "camPos"), cameraPos);
 		gl.uniform3fv(gl.getUniformLocation(program, "lightPos"), lightPos);
@@ -602,20 +604,11 @@ window.addEventListener('load', function() {
 			glMatrix.mat4.multiply(PVM, view_matrix, M);
 			glMatrix.mat4.multiply(PVM, proj_matrix, PVM);
 
-			// ===== MODEL & NORMAL MATRIX ===== (PHONG)
-			gl.uniformMatrix4fv(
-				gl.getUniformLocation(program, "M"),
-				false,
-				M
-			);
-
+			// (PHONG)
+			gl.uniformMatrix4fv(gl.getUniformLocation(program, "M"), false, M);
 			let normalMatrix = glMatrix.mat3.create();
 			glMatrix.mat3.normalFromMat4(normalMatrix, M);
-			gl.uniformMatrix3fv(
-				gl.getUniformLocation(program, "NMat"),
-				false,
-				normalMatrix
-			);
+			gl.uniformMatrix3fv(gl.getUniformLocation(program, "normalMatrix"), false, normalMatrix);
 
 
 			gl.bindVertexArray(obj.vao);
@@ -636,13 +629,6 @@ window.addEventListener('load', function() {
 			}
 
 			if (obj.colorMode === "normal") gl.uniform3fv(colorLoc, CubeColor);
-
-			// diffuse komponenta = barva objekta PHONG
-			gl.uniform3fv(
-				gl.getUniformLocation(program, "kd"),
-				CubeColor
-			);
-
 
 			gl.drawElements(gl.TRIANGLES, obj.vertexCount, gl.UNSIGNED_SHORT, 0);
 		}
