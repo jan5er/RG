@@ -44,9 +44,14 @@
             uniform int ColorMode;
             uniform vec3 lightPos;
             uniform vec3 camPos;
-            
-            uniform float R;
-            uniform float I;
+
+            uniform vec3 Ia;
+            uniform vec3 Id;
+            uniform vec3 Is;
+
+            uniform vec3 ka;
+            uniform vec3 kd;
+            uniform vec3 ks;
             uniform float ns;
 
             in vec3 vNormal;
@@ -63,12 +68,12 @@
                 vec3 H = normalize(L + V); 
 
                 float diff = max(dot(N, L), 0.0);
-                vec3 diffuse = I * R * diff * vec3(1.0);
+                vec3 diffuse = Id * kd * diff;
 
                 float spec = pow(max(dot(N, H), 0.0), ns);
-                vec3 specular = I * spec * vec3(1.0);
+                vec3 specular = Is * ks * spec;
 
-                vec3 ambient = I * R * vec3(1.0);
+                vec3 ambient = Ia * ka;
 
                 vec3 result = ambient + diffuse + specular;
 
@@ -82,8 +87,9 @@
                 } else if (ColorMode == 2) {
                     color = vec4(vUV, 0.0, 1.0);
                 } else {
-                    color = vec4(1.0, 0.0, 1.0, 1.0); 
-                }
+
+
+                    }
             } 
         </script>
     </head>

@@ -561,15 +561,14 @@ window.addEventListener('load', function() {
 		gl.uniform3fv(gl.getUniformLocation(program, "camPos"), cameraPos);
 		gl.uniform3fv(gl.getUniformLocation(program, "lightPos"), lightPos);
 		// intenzitete (iz vaj)
-		gl.uniform1f(gl.getUniformLocation(program, "I"), intensity.value);
-		gl.uniform1f(gl.getUniformLocation(program, "R"), material.value);
-		gl.uniform1f(gl.getUniformLocation(program, "ns"), ns.value);
+		gl.uniform3fv(gl.getUniformLocation(program, "Ia"), [0.2, 0.2, 0.2]);
+		gl.uniform3fv(gl.getUniformLocation(program, "Id"), [1.0, 1.0, 1.0]);
+		gl.uniform3fv(gl.getUniformLocation(program, "Is"), [1.0, 1.0, 1.0]);
+		// material (lahko spreminjaš)
+		gl.uniform3fv(gl.getUniformLocation(program, "ka"), [0.2, 0.2, 0.2]);
+		gl.uniform3fv(gl.getUniformLocation(program, "ks"), [1.0, 1.0, 1.0]);
+		gl.uniform1f(gl.getUniformLocation(program, "ns"), 50.0);
 
-		console.log("LIGHT POS:", lightPos);
-		console.log("CAMERA POS:", cameraPos);
-		console.log("INTENSITY:", intensity.value);
-		console.log("MATERIAL:", material.value);
-		console.log("NS:", ns.value);
 
 		// M za tla
 		let M_floor = glMatrix.mat4.create();
@@ -692,8 +691,7 @@ window.addEventListener('load', function() {
 		const sliderIds = [
 			["scaleX", 0], ["scaleY", 1], ["scaleZ", 2],
 			["rotX", 0], ["rotY", 1], ["rotZ", 2],
-			["posX", 0], ["posY", 1], ["posZ", 2], 
-			["material", 0], ["intensity", 0], ["ns", 0], ["lightPosX", 0], ["lightPosY", 1], ["lightPosZ", 2]
+			["posX", 0], ["posY", 1], ["posZ", 2]
 		];
 
 		sliderIds.forEach(([id, idx]) => {
@@ -718,6 +716,8 @@ window.addEventListener('load', function() {
 		const thetaDisplay = document.getElementById("shearThetaVal");
 		const phiDisplay = document.getElementById("shearPhiVal");
 		const shearTypeSelect = document.getElementById("shearType");
+
+		const materialDisplay = document.getElementById("materialSlider");
 
 		function updateShear() {
 			if (selectedObjectIndex < 0) return;
@@ -746,14 +746,7 @@ window.addEventListener('load', function() {
 			"rotX": 0, "rotY": 0, "rotZ": 0,
 			"posX": 0, "posY": 0, "posZ": 0,
 			"shearTheta": 90.0,
-			"shearPhi": 90.0,
-			"shearType": "XY",
-			"material": 0.5,
-			"intensity": 0.5,
-			"ns": 50,
-			"lightPosX": 5.0,
-			"lightPosY": 5.0,
-			"lightPosZ": 5.0
+			"shearPhi": 90.0
 		};
 		Object.keys(defaultValues).forEach(key => {
 			const slider = document.getElementById(key);
