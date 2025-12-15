@@ -9,6 +9,7 @@ let lastMouseX = 0;
 let lastMouseY = 0;
 let cameraPos = [0, 0, 0]; // začetna pozicija kamere
 let cameraRotation = [0, 0, 0]; 
+let lightPos = [5, 5, 5];
 let orthoPerspective = false;
 let shearTheta = 90;
 let shearPhi = 90;
@@ -556,6 +557,20 @@ window.addEventListener('load', function() {
 		gl.useProgram(program);
 		let colorLoc = gl.getUniformLocation(program, "CubeColor");
 
+		// Pošljem podatke o kameri in luči v shader (PHONG)
+		gl.uniform3fv(gl.getUniformLocation(program, "camPos"), cameraPos);
+		gl.uniform3fv(gl.getUniformLocation(program, "lightPos"), lightPos);
+		// intenzitete (iz vaj)
+		gl.uniform1f(gl.getUniformLocation(program, "I"), intensity.value);
+		gl.uniform1f(gl.getUniformLocation(program, "R"), material.value);
+		gl.uniform1f(gl.getUniformLocation(program, "ns"), ns.value);
+
+		console.log("LIGHT POS:", lightPos);
+		console.log("CAMERA POS:", cameraPos);
+		console.log("INTENSITY:", intensity.value);
+		console.log("MATERIAL:", material.value);
+		console.log("NS:", ns.value);
+
 		// M za tla
 		let M_floor = glMatrix.mat4.create();
 		glMatrix.mat4.scale(M_floor, M_floor, glMatrix.vec3.fromValues(10, 0.1, 10)); // Skaliramo base kocko da postane tla
@@ -587,6 +602,22 @@ window.addEventListener('load', function() {
 			glMatrix.mat4.multiply(PVM, view_matrix, M);
 			glMatrix.mat4.multiply(PVM, proj_matrix, PVM);
 
+			// ===== MODEL & NORMAL MATRIX ===== (PHONG)
+			gl.uniformMatrix4fv(
+				gl.getUniformLocation(program, "M"),
+				false,
+				M
+			);
+
+			let normalMatrix = glMatrix.mat3.create();
+			glMatrix.mat3.normalFromMat4(normalMatrix, M);
+			gl.uniformMatrix3fv(
+				gl.getUniformLocation(program, "NMat"),
+				false,
+				normalMatrix
+			);
+
+
 			gl.bindVertexArray(obj.vao);
 			gl.uniformMatrix4fv(gl.getUniformLocation(program, "PVM"), false, PVM);
 
@@ -605,6 +636,13 @@ window.addEventListener('load', function() {
 			}
 
 			if (obj.colorMode === "normal") gl.uniform3fv(colorLoc, CubeColor);
+
+			// diffuse komponenta = barva objekta PHONG
+			gl.uniform3fv(
+				gl.getUniformLocation(program, "kd"),
+				CubeColor
+			);
+
 
 			gl.drawElements(gl.TRIANGLES, obj.vertexCount, gl.UNSIGNED_SHORT, 0);
 		}
@@ -654,7 +692,8 @@ window.addEventListener('load', function() {
 		const sliderIds = [
 			["scaleX", 0], ["scaleY", 1], ["scaleZ", 2],
 			["rotX", 0], ["rotY", 1], ["rotZ", 2],
-			["posX", 0], ["posY", 1], ["posZ", 2]
+			["posX", 0], ["posY", 1], ["posZ", 2], 
+			["material", 0], ["intensity", 0], ["ns", 0], ["lightPosX", 0], ["lightPosY", 1], ["lightPosZ", 2]
 		];
 
 		sliderIds.forEach(([id, idx]) => {
@@ -707,7 +746,14 @@ window.addEventListener('load', function() {
 			"rotX": 0, "rotY": 0, "rotZ": 0,
 			"posX": 0, "posY": 0, "posZ": 0,
 			"shearTheta": 90.0,
-			"shearPhi": 90.0
+			"shearPhi": 90.0,
+			"shearType": "XY",
+			"material": 0.5,
+			"intensity": 0.5,
+			"ns": 50,
+			"lightPosX": 5.0,
+			"lightPosY": 5.0,
+			"lightPosZ": 5.0
 		};
 		Object.keys(defaultValues).forEach(key => {
 			const slider = document.getElementById(key);
