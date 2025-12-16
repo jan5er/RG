@@ -7,7 +7,7 @@ let isLeftMB = false;
 let isRightMB = false;	
 let lastMouseX = 0;
 let lastMouseY = 0;
-let cameraPos = [0, 0, 0]; // začetna pozicija kamere
+let cameraPos = [0, 0, 0 + cameraDistance]; // začetna pozicija kamere
 let cameraRotation = [0, 0, 0]; 
 let lightPos = [5, 5, 5];
 let orthoPerspective = false;
@@ -552,12 +552,15 @@ window.addEventListener('load', function() {
 		let view_matrix = glMatrix.mat4.identity(glMatrix.mat4.create());
 		glMatrix.mat4.rotateX(view_matrix, view_matrix, glMatrix.glMatrix.toRadian(cameraRotation[1]));
 		glMatrix.mat4.rotateY(view_matrix, view_matrix, glMatrix.glMatrix.toRadian(cameraRotation[0]));
-		glMatrix.mat4.translate(view_matrix, view_matrix, glMatrix.vec3.fromValues(-cameraPos[0], -cameraPos[1], -cameraPos[2] - cameraDistance));
+		glMatrix.mat4.translate(view_matrix, view_matrix, glMatrix.vec3.fromValues(-cameraPos[0], -cameraPos[1], -cameraPos[2]));
 
 		gl.useProgram(program);
 		let colorLoc = gl.getUniformLocation(program, "CubeColor");
 
 		// TODO: POMIKANJE LUČI 
+		lightPos[0] = parseFloat(document.getElementById("lightPosX").value);
+		lightPos[1] = parseFloat(document.getElementById("lightPosY").value);
+		lightPos[2] = parseFloat(document.getElementById("lightPosZ").value);
 
 		// Pošljem podatke o kameri in luči v shader (PHONG)
 		gl.uniform3fv(gl.getUniformLocation(program, "camPos"), cameraPos);
@@ -604,7 +607,7 @@ window.addEventListener('load', function() {
 			glMatrix.mat4.multiply(PVM, view_matrix, M);
 			glMatrix.mat4.multiply(PVM, proj_matrix, PVM);
 
-			// (PHONG)
+			// (PHONG) 
 			gl.uniformMatrix4fv(gl.getUniformLocation(program, "M"), false, M);
 			let normalMatrix = glMatrix.mat3.create();
 			glMatrix.mat3.normalFromMat4(normalMatrix, M);
