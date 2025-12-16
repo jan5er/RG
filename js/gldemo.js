@@ -49,15 +49,18 @@ function shearMatrix(type, thetaDeg, phiDeg) {
 
 window.addEventListener('load', function() {
 
-	const rainbow = document.getElementById("rainbowMode");
-	const picker = document.getElementById("colorPickerWrapper");
-
+	let rainbow = document.getElementById("rainbowMode");
+	let picker = document.getElementById("colorPickerWrapper");
 	function updatePickerVisibility() {
 		picker.style.display = rainbow.checked ? "none" : "block";
 	}
-
 	rainbow.addEventListener("change", updatePickerVisibility);
 	updatePickerVisibility();
+
+	let perspectiveButton = document.getElementById("toggleProjection");
+	perspectiveButton.addEventListener("click", () => {
+		orthoPerspective = !orthoPerspective;
+	});
 
 	let upload = document.getElementById('uploadFile');
 	upload.addEventListener('change', (e) => {
@@ -617,18 +620,16 @@ window.addEventListener('load', function() {
 			glMatrix.mat4.multiply(PVM, view_matrix, M);
 			glMatrix.mat4.multiply(PVM, proj_matrix, PVM);
 
-			// (PHONG) 
+			// (PHONG) - mat4 normalMatrix = transpose(inverse(modelMatrix));
 			gl.uniformMatrix4fv(gl.getUniformLocation(program, "M"), false, M);
-
 			let normalMat4 = glMatrix.mat4.create();
 			glMatrix.mat4.invert(normalMat4, M);
 			glMatrix.mat4.transpose(normalMat4, normalMat4);
-			gl.uniformMatrix4fv(gl.getUniformLocation(program, "normalMatrix"), false, normalMat4);
-			/*
-			let normalMatrix = glMatrix.mat3.create();
-			glMatrix.mat3.normalFromMat4(normalMatrix, M);
-			gl.uniformMatrix3fv(gl.getUniformLocation(program, "normalMatrix"), false, normalMatrix);
-			*/
+
+			let normalMat3 = glMatrix.mat3.create();
+			glMatrix.mat3.fromMat4(normalMat3, normalMat4);
+			gl.uniformMatrix3fv(gl.getUniformLocation(program, "normalMatrix"), false, normalMat3);
+
 
 			gl.bindVertexArray(obj.vao);
 			gl.uniformMatrix4fv(gl.getUniformLocation(program, "PVM"), false, PVM);
