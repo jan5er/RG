@@ -13,7 +13,7 @@
 
             uniform mat4 PVM;
             uniform mat4 M;
-            uniform mat3 normalMatrix;
+            uniform mat4 normalMatrix;
 
             layout(location = 0) in vec3 VertexPosition;
             layout(location = 1) in vec3 VertexNormal;
@@ -28,10 +28,9 @@
 
             void main(){
                 gl_Position=PVM * vec4(VertexPosition, 1.0);
-
                 vec4 worldPos = M * vec4(VertexPosition, 1.0);
                 vPosition = worldPos.xyz;   
-                vNormal = normalize(normalMatrix * VertexNormal);
+                vNormal = normalize((normalMatrix * vec4(VertexNormal, 0.0)).xyz);
                 vUV = VertexUV;
                 vColor = CubeColor;
             }

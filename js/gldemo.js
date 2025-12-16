@@ -619,10 +619,16 @@ window.addEventListener('load', function() {
 
 			// (PHONG) 
 			gl.uniformMatrix4fv(gl.getUniformLocation(program, "M"), false, M);
+
+			let normalMat4 = glMatrix.mat4.create();
+			glMatrix.mat4.invert(normalMat4, M);
+			glMatrix.mat4.transpose(normalMat4, normalMat4);
+			gl.uniformMatrix4fv(gl.getUniformLocation(program, "normalMatrix"), false, normalMat4);
+			/*
 			let normalMatrix = glMatrix.mat3.create();
 			glMatrix.mat3.normalFromMat4(normalMatrix, M);
 			gl.uniformMatrix3fv(gl.getUniformLocation(program, "normalMatrix"), false, normalMatrix);
-
+			*/
 
 			gl.bindVertexArray(obj.vao);
 			gl.uniformMatrix4fv(gl.getUniformLocation(program, "PVM"), false, PVM);
