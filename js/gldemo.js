@@ -49,6 +49,16 @@ function shearMatrix(type, thetaDeg, phiDeg) {
 
 window.addEventListener('load', function() {
 
+	const rainbow = document.getElementById("rainbowMode");
+	const picker = document.getElementById("colorPickerWrapper");
+
+	function updatePickerVisibility() {
+		picker.style.display = rainbow.checked ? "none" : "block";
+	}
+
+	rainbow.addEventListener("change", updatePickerVisibility);
+	updatePickerVisibility();
+
 	let upload = document.getElementById('uploadFile');
 	upload.addEventListener('change', (e) => {
 		let files = e.target.files;
@@ -636,9 +646,17 @@ window.addEventListener('load', function() {
 			gl.drawElements(gl.TRIANGLES, obj.vertexCount, gl.UNSIGNED_SHORT, 0);
 		}
 
-		CubeColor[0] = 0.75 + 0.5 * Math.sin(t); 
-		CubeColor[1] = 0.75 + 0.5 * Math.sin(t * 0.5); 
-		CubeColor[2] = 0.75 + 0.5 * Math.sin(t * 1.5); 
+		if (rainbow.checked) {
+			CubeColor[0] = 0.5 + 0.5 * Math.sin(t); 
+			CubeColor[1] = 0.5 + 0.5 * Math.sin(t * 0.5); 
+			CubeColor[2] = 0.5 + 0.5 * Math.sin(t * 1.5); 
+		} else {
+			let colorPicker = document.getElementById("customColor");
+			let hexColor = colorPicker.value;
+			CubeColor[0] = parseInt(hexColor.substr(1, 2), 16) / 255;
+			CubeColor[1] = parseInt(hexColor.substr(3, 2), 16) / 255;
+			CubeColor[2] = parseInt(hexColor.substr(5, 2), 16) / 255;
+		}
 
 		t += 0.05
 
