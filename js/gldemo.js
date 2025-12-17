@@ -578,15 +578,17 @@ window.addEventListener('load', function() {
 		// Pošljem podatke o kameri in luči v shader (PHONG)
 		gl.uniform3fv(gl.getUniformLocation(program, "camPos"), cameraPos);
 		gl.uniform3fv(gl.getUniformLocation(program, "lightPos"), lightPos);
-		// intenzitete (iz vaj)
-		gl.uniform1f(gl.getUniformLocation(program, "I"), intensity.value);
-		gl.uniform1f(gl.getUniformLocation(program, "R"), material.value);
+		// intenzitete
+		gl.uniform1f(gl.getUniformLocation(program, "Ia"), Ia.value);
+		gl.uniform1f(gl.getUniformLocation(program, "Ra"), Ra.value);
+		gl.uniform1f(gl.getUniformLocation(program, "Rd"), Rd.value);
+		gl.uniform1f(gl.getUniformLocation(program, "Rs"), Rs.value);
+		gl.uniform1f(gl.getUniformLocation(program, "Il"), Il.value);
 		gl.uniform1f(gl.getUniformLocation(program, "ns"), ns.value);
 
 		console.log("LIGHT POS:", lightPos);
 		console.log("CAMERA POS:", cameraPos);
-		console.log("INTENSITY:", intensity.value);
-		console.log("MATERIAL:", material.value);
+		console.log("Ia:", Ia.value, "Ra:", Ra.value, "Rd:", Rd.value, "Rs:", Rs.value, "Il:", Il.value);
 		console.log("NS:", ns.value);
 
 		// M za tla
@@ -707,7 +709,7 @@ window.addEventListener('load', function() {
 			["scaleX", 0], ["scaleY", 1], ["scaleZ", 2],
 			["rotX", 0], ["rotY", 1], ["rotZ", 2],
 			["posX", 0], ["posY", 1], ["posZ", 2], 
-			["material", 0], ["intensity", 0], ["ns", 0], ["lightPosX", 0], ["lightPosY", 1], ["lightPosZ", 2]
+			["Ra", 0], ["Ia", 0], ["Rd", 0], ["Rs", 0], ["Il", 0], ["ns", 0], ["lightPosX", 0], ["lightPosY", 1], ["lightPosZ", 2]
 		];
 
 		sliderIds.forEach(([id, idx]) => {
@@ -762,8 +764,11 @@ window.addEventListener('load', function() {
 			"shearTheta": 90.0,
 			"shearPhi": 90.0,
 			"shearType": "XY",
-			"material": 0.5,
-			"intensity": 0.5,
+			"Ia": 0.5,
+			"Ra": 0.5,
+			"Rd": 0.5,
+			"Rs": 0.5,
+			"Il": 0.5,
 			"ns": 50,
 			"lightPosX": 5.0,
 			"lightPosY": 5.0,
