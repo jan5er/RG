@@ -93,7 +93,12 @@ window.addEventListener('load', function() {
 				rotation: [0,0,0],
 				scale: [1,1,1],
 				shearMatrix: glMatrix.mat4.create(),
-				colorMode: "normal"
+				colorMode: "normal",
+				Ra: 0.5,
+				Ia: 0.5,
+				Rd: 0.5,
+				Rs: 0.5,
+				ns: 50,
 			});
 
 			console.log("Inserted object:", item.name);
@@ -578,13 +583,6 @@ window.addEventListener('load', function() {
 		// Pošljem podatke o kameri in luči v shader (PHONG)
 		gl.uniform3fv(gl.getUniformLocation(program, "camPos"), cameraPos);
 		gl.uniform3fv(gl.getUniformLocation(program, "lightPos"), lightPos);
-		// intenzitete
-		gl.uniform1f(gl.getUniformLocation(program, "Ia"), Ia.value);
-		gl.uniform1f(gl.getUniformLocation(program, "Ra"), Ra.value);
-		gl.uniform1f(gl.getUniformLocation(program, "Rd"), Rd.value);
-		gl.uniform1f(gl.getUniformLocation(program, "Rs"), Rs.value);
-		gl.uniform1f(gl.getUniformLocation(program, "Il"), Il.value);
-		gl.uniform1f(gl.getUniformLocation(program, "ns"), ns.value);
 
 		console.log("LIGHT POS:", lightPos);
 		console.log("CAMERA POS:", cameraPos);
@@ -632,6 +630,13 @@ window.addEventListener('load', function() {
 			glMatrix.mat3.fromMat4(normalMat3, normalMat4);
 			gl.uniformMatrix3fv(gl.getUniformLocation(program, "normalMatrix"), false, normalMat3);
 
+					// intenzitete
+			gl.uniform1f(gl.getUniformLocation(program, "Il"), Il.value);
+			gl.uniform1f(gl.getUniformLocation(program, "Ia"), obj.Ia);
+			gl.uniform1f(gl.getUniformLocation(program, "Ra"), obj.Ra);
+			gl.uniform1f(gl.getUniformLocation(program, "Rd"), obj.Rd);
+			gl.uniform1f(gl.getUniformLocation(program, "Rs"), obj.Rs);
+			gl.uniform1f(gl.getUniformLocation(program, "ns"), obj.ns);
 
 			gl.bindVertexArray(obj.vao);
 			gl.uniformMatrix4fv(gl.getUniformLocation(program, "PVM"), false, PVM);
@@ -709,7 +714,7 @@ window.addEventListener('load', function() {
 			["scaleX", 0], ["scaleY", 1], ["scaleZ", 2],
 			["rotX", 0], ["rotY", 1], ["rotZ", 2],
 			["posX", 0], ["posY", 1], ["posZ", 2], 
-			["Ra", 0], ["Ia", 0], ["Rd", 0], ["Rs", 0], ["Il", 0], ["ns", 0], ["lightPosX", 0], ["lightPosY", 1], ["lightPosZ", 2]
+			["Ra", "Ra"], ["Rd", "Rd"], ["Rs", "Rs"], ["ns", "ns"], ["Ia", "Ia"], ["Il", 0.5], ["lightPosX", 0], ["lightPosY", 1], ["lightPosZ", 2]
 		];
 
 		sliderIds.forEach(([id, idx]) => {
@@ -719,6 +724,12 @@ window.addEventListener('load', function() {
 			slider.addEventListener("input", () => {
 				if (selectedObjectIndex < 0) return;
 				let obj = objects[selectedObjectIndex];
+
+				if (idx == "Ra") obj.Ra = parseFloat(slider.value);
+				else if (idx == "Rd") obj.Rd = parseFloat(slider.value);
+				else if (idx == "Rs") obj.Rs = parseFloat(slider.value);
+				else if (idx == "ns") obj.ns = parseInt(slider.value);
+				else if (idx == "Ia") obj.Ia = parseFloat(slider.value);
 
 				if (id.startsWith("scale")) obj.scale[idx] = parseFloat(slider.value);
 				else if (id.startsWith("rot")) obj.rotation[idx] = parseFloat(slider.value);
@@ -821,5 +832,17 @@ window.addEventListener('load', function() {
 		phiSlider.value = shearPhi;
 		thetaDisplay.textContent = shearTheta.toFixed(1);
 		phiDisplay.textContent = shearPhi.toFixed(1);
+
+		// Materialni parametri
+		document.getElementById("Ra").value = selectedObject.Ra;
+		document.getElementById("RaVal").textContent = selectedObject.Ra.toFixed(2);
+		document.getElementById("Rd").value = selectedObject.Rd;
+		document.getElementById("RdVal").textContent = selectedObject.Rd.toFixed(2);
+		document.getElementById("Rs").value = selectedObject.Rs;
+		document.getElementById("RsVal").textContent = selectedObject.Rs.toFixed(2);
+		document.getElementById("ns").value = selectedObject.ns;
+		document.getElementById("nsVal").textContent = selectedObject.ns.toFixed(0);
+		document.getElementById("Ia").value = selectedObject.Ia;
+		document.getElementById("IaVal").textContent = selectedObject.Ia.toFixed(2);
 	}
 });
