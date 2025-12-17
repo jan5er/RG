@@ -95,7 +95,6 @@ window.addEventListener('load', function() {
 				shearMatrix: glMatrix.mat4.create(),
 				colorMode: "normal",
 				Ra: 0.5,
-				Ia: 0.5,
 				Rd: 0.5,
 				Rs: 0.5,
 				ns: 50,
@@ -630,9 +629,9 @@ window.addEventListener('load', function() {
 			glMatrix.mat3.fromMat4(normalMat3, normalMat4);
 			gl.uniformMatrix3fv(gl.getUniformLocation(program, "normalMatrix"), false, normalMat3);
 
-					// intenzitete
+			// intenzitete - PHONG
 			gl.uniform1f(gl.getUniformLocation(program, "Il"), Il.value);
-			gl.uniform1f(gl.getUniformLocation(program, "Ia"), obj.Ia);
+			gl.uniform1f(gl.getUniformLocation(program, "Ia"), Ia.value);
 			gl.uniform1f(gl.getUniformLocation(program, "Ra"), obj.Ra);
 			gl.uniform1f(gl.getUniformLocation(program, "Rd"), obj.Rd);
 			gl.uniform1f(gl.getUniformLocation(program, "Rs"), obj.Rs);
@@ -714,7 +713,7 @@ window.addEventListener('load', function() {
 			["scaleX", 0], ["scaleY", 1], ["scaleZ", 2],
 			["rotX", 0], ["rotY", 1], ["rotZ", 2],
 			["posX", 0], ["posY", 1], ["posZ", 2], 
-			["Ra", "Ra"], ["Rd", "Rd"], ["Rs", "Rs"], ["ns", "ns"], ["Ia", "Ia"], ["Il", 0.5], ["lightPosX", 0], ["lightPosY", 1], ["lightPosZ", 2]
+			["Ra", "Ra"], ["Rd", "Rd"], ["Rs", "Rs"], ["ns", "ns"], ["Ia", 0.5], ["Il", 0.5], ["lightPosX", 0], ["lightPosY", 1], ["lightPosZ", 2]
 		];
 
 		sliderIds.forEach(([id, idx]) => {
@@ -725,11 +724,11 @@ window.addEventListener('load', function() {
 				if (selectedObjectIndex < 0) return;
 				let obj = objects[selectedObjectIndex];
 
+				// PHONG 
 				if (idx == "Ra") obj.Ra = parseFloat(slider.value);
 				else if (idx == "Rd") obj.Rd = parseFloat(slider.value);
 				else if (idx == "Rs") obj.Rs = parseFloat(slider.value);
 				else if (idx == "ns") obj.ns = parseInt(slider.value);
-				else if (idx == "Ia") obj.Ia = parseFloat(slider.value);
 
 				if (id.startsWith("scale")) obj.scale[idx] = parseFloat(slider.value);
 				else if (id.startsWith("rot")) obj.rotation[idx] = parseFloat(slider.value);
@@ -833,7 +832,7 @@ window.addEventListener('load', function() {
 		thetaDisplay.textContent = shearTheta.toFixed(1);
 		phiDisplay.textContent = shearPhi.toFixed(1);
 
-		// Materialni parametri
+		// Materialni parametri PHONG
 		document.getElementById("Ra").value = selectedObject.Ra;
 		document.getElementById("RaVal").textContent = selectedObject.Ra.toFixed(2);
 		document.getElementById("Rd").value = selectedObject.Rd;
@@ -841,8 +840,7 @@ window.addEventListener('load', function() {
 		document.getElementById("Rs").value = selectedObject.Rs;
 		document.getElementById("RsVal").textContent = selectedObject.Rs.toFixed(2);
 		document.getElementById("ns").value = selectedObject.ns;
-		document.getElementById("nsVal").textContent = selectedObject.ns.toFixed(0);
-		document.getElementById("Ia").value = selectedObject.Ia;
-		document.getElementById("IaVal").textContent = selectedObject.Ia.toFixed(2);
+		document.getElementById("nsVal").textContent = selectedObject.ns.toFixed(1);
+
 	}
 });
