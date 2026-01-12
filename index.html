@@ -59,7 +59,6 @@
 
             out vec4 color;
             void main(){
-
                 vec3 N = normalize(vNormal);
                 vec3 V = normalize(camPos - vPosition);
                 vec3 L = normalize(lightPos - vPosition);
@@ -103,6 +102,14 @@
         <div style="padding:10px; border-bottom:1px solid #ccc; margin-bottom:10px;">
             <label>Shear Animation: </label>
             <button id="toggleShearAnimation">Animate shear</button>
+        </div>
+        <div style="padding:10px; border-bottom:1px solid #ccc; margin-bottom:10px;">
+            <label>Camera Orbit: </label>
+            <button id="toggleCameraOrbit">Camera orbit</button>
+        </div>
+        <div style="padding:10px; border-bottom:1px solid #ccc; margin-bottom:10px;">
+            <label>Object movement: </label>
+            <button id="toggleObjectMovement">Object movement</button>
         </div>
         <details>
             <summary style="cursor:pointer; font-weight:bold; margin-bottom: 10px;">

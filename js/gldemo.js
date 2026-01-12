@@ -15,6 +15,8 @@ let shearTheta = 90;
 let shearPhi = 90;
 let shearType = "XY";
 let shearAnimation = false;
+let cameraOrbitAnimation = false;
+let objectMovementAnimation = false;
 
 let uploadedObjects = [];
 let objects = [];
@@ -124,6 +126,16 @@ window.addEventListener('load', function() {
 	let toggleShearAnimationButton = this.document.getElementById("toggleShearAnimation");
 	toggleShearAnimationButton.addEventListener("click", () => {
 		shearAnimation = !shearAnimation;
+	});
+
+	let toggleObjectMovementButton = this.document.getElementById("toggleObjectMovement");
+	toggleObjectMovementButton.addEventListener("click", () => {
+		objectMovementAnimation = !objectMovementAnimation;
+	});
+
+	let toggleCameraOrbitButton = this.document.getElementById("toggleCameraOrbit");
+	toggleCameraOrbitButton.addEventListener("click", () => {
+		cameraOrbitAnimation = !cameraOrbitAnimation;	
 	});
 
 	document.getElementById("colorMode").addEventListener("change", (e) => {
@@ -669,6 +681,20 @@ window.addEventListener('load', function() {
 			CubeColor[0] = parseInt(hexColor.substr(1, 2), 16) / 255;
 			CubeColor[1] = parseInt(hexColor.substr(3, 2), 16) / 255;
 			CubeColor[2] = parseInt(hexColor.substr(5, 2), 16) / 255;
+		}
+
+		if (cameraOrbitAnimation) {
+			cameraPos[0] = cameraPos[0] * Math.cos(0.01) - cameraPos[2] * Math.sin(0.01);
+			cameraPos[2] = cameraPos[0] * Math.sin(0.01) + cameraPos[2] * Math.cos(0.01);
+			cameraRotation[0] += 0.575;
+		}
+
+		if (objectMovementAnimation) {
+			if (selectedObjectIndex < 0) return;
+			selectedObject = objects[selectedObjectIndex];
+			selectedObject.position[0] = Math.sin(t);
+			selectedObject.position[2] = Math.cos(t);
+			selectedObject.position[1] = Math.sin(t/2);
 		}
 
 		t += 0.05
