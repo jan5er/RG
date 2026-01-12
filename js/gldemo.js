@@ -22,6 +22,10 @@ let uploadedObjects = [];
 let objects = [];
 let selectedObjectIndex = -1;
 
+let mappingMode = 0; // 0 - default, 1 - ravninsko, 2 - cilindrično, 3 - sferično
+let mappingAxis = 0;
+let texture;
+
 function shearMatrix(type, thetaDeg, phiDeg) {
     let theta = glMatrix.glMatrix.toRadian(thetaDeg);
     let phi = glMatrix.glMatrix.toRadian(phiDeg);
@@ -80,6 +84,21 @@ window.addEventListener('load', function() {
 		}
 	})
 
+	let uploadTexture = document.getElementById('textureUpload');
+	uploadTexture.addEventListener('change', (e) => {
+		let files = e.target.files;
+		if (files.length > 0) {
+			let file = files[0];
+			let reader = new FileReader();
+			reader.onload = (ev) => {
+				if (selectedObjectIndex < 0) return;
+				texture = loadTexture(ev.target.result);
+				objects[selectedObjectIndex].texture = texture;
+			};
+			reader.readAsDataURL(file);
+		}
+	})
+
 	let insertButton = document.getElementById("insertObject");
 	insertButton.addEventListener("click", () => {
 		let select = document.getElementById("objectSelect");
@@ -100,6 +119,9 @@ window.addEventListener('load', function() {
 				Rd: 0.5,
 				Rs: 0.5,
 				ns: 50,
+				bMin: gpuObj.bMin,
+				bMax: gpuObj.bMax,
+				texture: null
 			});
 
 			console.log("Inserted object:", item.name);
@@ -237,6 +259,23 @@ window.addEventListener('load', function() {
 			cameraPos[2] += -forward_vector[2] * e.deltaY * 0.001;
 			if (cameraDistance < 0.5) cameraDistance = 0.5; 
 		});
+	}
+
+	function loadTexture(path) {
+		const tex = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, tex);
+
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
+
+		const img = new Image();
+		img.onload = () => {
+			gl.bindTexture(gl.TEXTURE_2D, tex);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
+				gl.RGBA, gl.UNSIGNED_BYTE, img);
+			gl.generateMipmap(gl.TEXTURE_2D);
+		};
+		img.src = path;
+		return tex;
 	}
 
 	window.addEventListener('keydown', (e)=>{
@@ -394,6 +433,19 @@ window.addEventListener('load', function() {
 		return { positions, normals, texture_uvs, vertices, indices };
 	}
 
+	function computeBoundingBox(vertices) {
+		let bMin = [ Infinity,  Infinity,  Infinity];
+		let bMax = [-Infinity, -Infinity, -Infinity];
+
+		for (let v of vertices) {
+			for (let i = 0; i < 3; i++) {
+				bMin[i] = Math.min(bMin[i], v.position[i]);
+				bMax[i] = Math.max(bMax[i], v.position[i]);
+			}
+		}
+		return { bMin, bMax };
+	}
+
 	function uploadObject(objectData) {
 		let vao = gl.createVertexArray();
     	gl.bindVertexArray(vao);
@@ -428,10 +480,14 @@ window.addEventListener('load', function() {
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
 		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(objectData.indices), gl.STATIC_DRAW);
 
+		let bbox = computeBoundingBox(objectData.vertices);
+
 		return {
 			vao,
 			ebo,
-			vertexCount: objectData.indices.length
+			vertexCount: objectData.indices.length,
+			bMin: bbox.bMin,
+			bMax: bbox.bMax
 		};
 	}
 
@@ -586,7 +642,6 @@ window.addEventListener('load', function() {
 		gl.useProgram(program);
 		let colorLoc = gl.getUniformLocation(program, "CubeColor");
 
-		// TODO: POMIKANJE LUČI 
 		lightPos[0] = parseFloat(document.getElementById("lightPosX").value);
 		lightPos[1] = parseFloat(document.getElementById("lightPosY").value);
 		lightPos[2] = parseFloat(document.getElementById("lightPosZ").value);
@@ -594,6 +649,12 @@ window.addEventListener('load', function() {
 		// Pošljem podatke o kameri in luči v shader (PHONG)
 		gl.uniform3fv(gl.getUniformLocation(program, "camPos"), cameraPos);
 		gl.uniform3fv(gl.getUniformLocation(program, "lightPos"), lightPos);
+
+		mappingMode = document.getElementById("mappingMode").selectedIndex;
+		gl.uniform1i(gl.getUniformLocation(program, "mappingMode"), mappingMode);
+		mappingAxis = document.getElementById("mappingAxis").selectedIndex;
+		gl.uniform1i(gl.getUniformLocation(program, "mappingAxis"), mappingAxis);
+		console.log("MAPPING MODE:", mappingMode, "AXIS:", mappingAxis);
 
 		console.log("LIGHT POS:", lightPos);
 		console.log("CAMERA POS:", cameraPos);
@@ -610,6 +671,8 @@ window.addEventListener('load', function() {
 		glMatrix.mat4.multiply(PVM_floor, proj_matrix, PVM_floor);     // P * V * M
 
 		// Tla 
+		gl.bindTexture(gl.TEXTURE_2D, null);  // Unbindamo teksturo za tla
+		gl.uniform1i(gl.getUniformLocation(program, "uTexture"), 0);
 		gl.bindVertexArray(vaoCube);
 		gl.uniformMatrix4fv(gl.getUniformLocation(program, "PVM"), false, PVM_floor);
 		gl.uniform3fv(colorLoc, new Float32Array([0, 0, 0]));
@@ -667,6 +730,14 @@ window.addEventListener('load', function() {
 			}
 
 			if (obj.colorMode === "normal") gl.uniform3fv(colorLoc, CubeColor);
+
+			if (mappingMode !== 0 && obj.texture) {
+				gl.activeTexture(gl.TEXTURE0);
+				gl.bindTexture(gl.TEXTURE_2D, obj.texture);
+				gl.uniform1i(gl.getUniformLocation(program, "uTexture"), 0);
+				gl.uniform3fv(gl.getUniformLocation(program, "bMin"), new Float32Array(obj.bMin));
+				gl.uniform3fv(gl.getUniformLocation(program, "bMax"), new Float32Array(obj.bMax));
+			}
 
 			gl.drawElements(gl.TRIANGLES, obj.vertexCount, gl.UNSIGNED_SHORT, 0);
 		}

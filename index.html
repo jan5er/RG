@@ -15,6 +15,11 @@
             uniform mat4 M;
             uniform mat3 normalMatrix;
 
+            uniform int mappingMode;
+            uniform int mappingAxis;
+            uniform vec3 bMin;
+            uniform vec3 bMax;
+
             layout(location = 0) in vec3 VertexPosition;
             layout(location = 1) in vec3 VertexNormal;
             layout(location = 2) in vec2 VertexUV;
@@ -25,15 +30,77 @@
             out vec3 vNormal;
             out vec2 vUV;
             out vec3 vPosition;
+            flat out int mappingModeV;
+
+            const float PI = 3.14159265359;
 
             void main(){
                 gl_Position=PVM * vec4(VertexPosition, 1.0);
 
+                vec3 d = bMax - bMin;
+
+                if (mappingMode == 1) { // To bo ravninska preslikava tekstur
+                    float s, t;
+                    if (mappingAxis == 0) { // X 
+                        s = (VertexPosition.z - bMin.z) / d.z;
+                        t = (VertexPosition.y - bMin.y) / d.y;
+                    } else if (mappingAxis == 1) { // Y
+                        s = (VertexPosition.x - bMin.x) / d.x;
+                        t = (VertexPosition.z - bMin.z) / d.z;
+                    } else { // Z 
+                        s = (VertexPosition.x - bMin.x) / d.x;
+                        t = (VertexPosition.y - bMin.y) / d.y;
+                    }
+
+                    vUV = vec2(s, t);
+
+                } else if (mappingMode == 2) { // Cilindrično lepljenje tekstur
+                    vec3 c = bMin + d / 2.0;
+                    vec3 v = VertexPosition - c;
+
+                    float theta, t, s;
+                    if (mappingAxis == 0) { // X 
+                        theta = atan(v.z, v.y) + PI; // +pi = +180
+                        t = (v.x / d.x) + 0.5;
+                    } else if (mappingAxis == 1) { // Y
+                        theta = atan(v.x, v.z) + PI; // +pi = +180
+                        t = (v.y / d.y) + 0.5;
+                    } else { // Z 
+                        theta = atan(v.x, v.y) + PI; // +pi = +180
+                        t = (v.z / d.z) + 0.5;
+                    }
+
+                    s = theta / (2.0 * PI);
+                    vUV = vec2(s, t);
+
+                } else if (mappingMode == 3) { // Sferično
+                    vec3 c = bMin + d / 2.0;
+                    vec3 v = VertexPosition - c;
+
+                    float theta, phi, s, t;
+                    if (mappingAxis == 0) { // X
+                        theta = atan(v.z, v.y) + PI; // +pi = +180
+                        phi = asin(v.x / length(v));
+                    } else if (mappingAxis == 1) { // Y
+                        theta = atan(v.x, v.z) + PI; 
+                        phi = asin(v.y / length(v));
+                    } else { // Z 
+                        theta = atan(v.x, v.y) + PI; 
+                        phi = asin(v.z / length(v));
+                    }
+
+                    s = theta / (2.0 * PI);
+                    t = (phi / PI) + 0.5;
+                    vUV = vec2(s, t);
+                } else {
+                    vUV = VertexUV;
+                }
+
                 vec4 worldPos = M * vec4(VertexPosition, 1.0);
                 vPosition = worldPos.xyz;   
                 vNormal = normalize(normalMatrix * VertexNormal);
-                vUV = VertexUV;
                 vColor = CubeColor;
+                mappingModeV = mappingMode;
             }
 
         </script>
@@ -56,6 +123,9 @@
             in vec2 vUV;
             in vec3 vColor; 
             in vec3 vPosition;
+            flat in int mappingModeV;
+
+            uniform sampler2D uTexture;
 
             out vec4 color;
             void main(){
@@ -68,14 +138,19 @@
                 float D = Rd * dot(N, L);
                 float S = Rs * pow(dot(N, H), ns);
                 float I = Il * (D + S);
-                vec3 result = (IaRa + I) * vColor;
+                vec3 result = (IaRa + I) * vColor; 
 
                 if (ColorMode == 0) {
                     color = vec4(result, 1.0);
                 } else if (ColorMode == 1) {
                     color = vec4(vNormal, 1.0);
                 } else if (ColorMode == 2) {
-                    color = vec4(vUV, 0.0, 1.0);
+                    if (mappingModeV == 0) {
+                        color = vec4(vUV, 0.0, 1.0);
+                    } else {
+                        vec3 textureColor = texture(uTexture, vUV).rgb;
+                        color = vec4(textureColor, 1.0);
+                    }
                 } else {
                     color = vec4(1.0, 0.0, 1.0, 1.0);
                 }
@@ -234,6 +309,26 @@
             <div>
                 <input type="range" id="lightPosZ" min="-80" max="80" step="0.1" value="5">
                 <label> Light Position Z: <span id="lightPosZVal">5</span></label>
+            </div>
+
+            <div>
+                <h3>Texture Mapping Controls</h3>
+                <label for="textureUpload">Upload Texture:</label>
+                <input type="file" id="textureUpload" accept="image/*"><br><br>
+                <label for="mappingMode">Mapping Mode:</label>
+                <select id="mappingMode">
+                    <option value="0">Original UV</option>
+                    <option value="1">Planar</option>
+                    <option value="2">Cylindrical</option>
+                    <option value="3">Spherical</option>
+                </select>
+                <br><br>
+                <label for="mappingAxis" style="margin-top: 0px;">Mapping Axis:</label>
+                <select id="mappingAxis">
+                    <option value="0">X Axis</option>
+                    <option value="1">Y Axis</option>
+                    <option value="2">Z Axis</option>
+                </select>
             </div>
         </div>
     </body>
