@@ -26,6 +26,9 @@ let mappingMode = 0; // 0 - default, 1 - ravninsko, 2 - cilindrično, 3 - sferi�
 let mappingAxis = 0;
 let texture;
 
+let tMode = false;
+let tValue = 0.5;
+
 function shearMatrix(type, thetaDeg, phiDeg) {
     let theta = glMatrix.glMatrix.toRadian(thetaDeg);
     let phi = glMatrix.glMatrix.toRadian(phiDeg);
@@ -98,6 +101,26 @@ window.addEventListener('load', function() {
 			reader.readAsDataURL(file);
 		}
 	})
+
+	let cylindricalUserTCheckbox = document.getElementById("cylindricalUserT");
+	cylindricalUserTCheckbox.addEventListener("change", (e) => {
+		if (e.target.checked) {
+			tMode = true;
+			document.getElementById("cylindricalUserTRangeDiv").style.display = "block";
+			console.log("Cylindrical mapping T mode enabled.");
+		} else {
+			tMode = false;
+			document.getElementById("cylindricalUserTRangeDiv").style.display = "none";
+		}
+	});
+
+	let cylindricalUserTRange = document.getElementById("cylindricalUserTRange");
+	cylindricalUserTRange.addEventListener("input", (e) => {
+		document.getElementById("cylindricalUserTRangeVal").textContent = e.target.value;
+		tValue = parseFloat(e.target.value);
+		console.log("User T value set to:", tValue);
+	});
+
 
 	let insertButton = document.getElementById("insertObject");
 	insertButton.addEventListener("click", () => {
@@ -678,6 +701,11 @@ window.addEventListener('load', function() {
 		gl.uniform3fv(colorLoc, new Float32Array([0, 0, 0]));
 		gl.drawArrays(gl.TRIANGLES, 0, 36);
 
+		gl.uniform1i(gl.getUniformLocation(program, "tMode"), tMode);
+		if (tMode) {
+			gl.uniform1f(gl.getUniformLocation(program, "tValue"), tValue);	
+		}
+
 		// naloženi objekti
 		for (let obj of objects) {
 			// M za objekt
@@ -810,7 +838,8 @@ window.addEventListener('load', function() {
 			["scaleX", 0], ["scaleY", 1], ["scaleZ", 2],
 			["rotX", 0], ["rotY", 1], ["rotZ", 2],
 			["posX", 0], ["posY", 1], ["posZ", 2], 
-			["Ra", "Ra"], ["Rd", "Rd"], ["Rs", "Rs"], ["ns", "ns"], ["Ia", 0.5], ["Il", 0.5], ["lightPosX", 0], ["lightPosY", 1], ["lightPosZ", 2]
+			["Ra", "Ra"], ["Rd", "Rd"], ["Rs", "Rs"], ["ns", "ns"], ["Ia", 0.5], ["Il", 0.5], ["lightPosX", 0], ["lightPosY", 1], ["lightPosZ", 2],
+			["cylindricalUserTRange", 0.5]
 		];
 
 		sliderIds.forEach(([id, idx]) => {
